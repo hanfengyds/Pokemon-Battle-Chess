@@ -1,0 +1,727 @@
+/* 引入字体 */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* 棋盘和棋子样式 */
+#game-board {
+    background:rgba(2, 27, 76, 0.3);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+#game-board::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(white, rgba(255, 255, 255, 0.2) 2px, transparent 3px),
+        radial-gradient(white, rgba(255, 255, 255, 0.15) 1px, transparent 2px),
+        radial-gradient(white, rgba(255, 255, 255, 0.1) 2px, transparent 3px);
+    background-size: 550px 550px, 350px 350px, 250px 250px;
+    background-position: 0 0, 40px 60px, 130px 270px;
+    z-index: 1;
+}
+
+.cell {
+    position: absolute;
+    transition: all 0.2s ease;
+    z-index: 5;
+    border: 1px solid transparent; /* 基础边框 */
+    box-shadow: 0 0 0 0.5px rgb(246, 245, 255); /* 用阴影模拟更细边框 */
+}
+
+.piece {
+    position: absolute;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    transform-origin: center;
+    z-index: 10;
+    background: none !important;
+}
+
+.piece:hover {
+    transform: scale(1.05);
+}
+
+/* 动画效果 - 整个格子变色 */
+@keyframes pulse {
+    0% {
+        background-color: rgba(129, 199, 132, 0.3);
+    }
+    50% {
+        background-color: rgba(129, 199, 132, 0.7);
+    }
+    100% {
+        background-color: rgba(129, 199, 132, 0.3);
+    }
+}
+
+@keyframes attack-pulse {
+    0% {
+        background-color: rgba(244, 67, 54, 0.3);
+    }
+    50% {
+        background-color: rgba(244, 67, 54, 0.7);
+    }
+    100% {
+        background-color: rgba(244, 67, 54, 0.3);
+    }
+}
+
+/* 交换位置的动画 */
+@keyframes swap-pulse {
+    0% {
+        background-color: rgba(156, 39, 176, 0.3);
+    }
+    50% {
+        background-color: rgba(156, 39, 176, 0.7);
+    }
+    100% {
+        background-color: rgba(156, 39, 176, 0.3);
+    }
+}
+
+/* 攻击动画 */
+@keyframes attack-animation {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(5px); }
+    50% { transform: translateX(-5px); }
+    75% { transform: translateX(3px); }
+    100% { transform: translateX(0); }
+}
+
+/* 交换位置动画 */
+@keyframes swap-animation {
+    0% { transform: scale(1) translateX(0); opacity: 1; }
+    50% { transform: scale(1.1) translateX(10px); opacity: 0.7; }
+    100% { transform: scale(1) translateX(0); opacity: 1; }
+}
+
+.attacking {
+    animation: attack-animation 0.5s ease;
+}
+
+.swapping {
+    animation: swap-animation 0.8s ease;
+}
+
+/* 伤害数字动画 */
+@keyframes damage-popup {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-20px); }
+}
+
+.damage-popup {
+    position: absolute;
+    color: #ff4444;
+    font-weight: bold;
+    pointer-events: none;
+    animation: damage-popup 1s ease forwards;
+    z-index: 30;
+}
+
+/* 交换提示动画 */
+@keyframes swap-popup {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-20px); }
+}
+
+.swap-popup {
+    position: absolute;
+    color: #dd1fff;
+    font-weight: bold;
+    pointer-events: none;
+    animation: swap-popup 1s ease forwards;
+    z-index: 30;
+}
+
+/* 棋包卡片动画 */
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* 滚动条样式 */
+#message-area {
+    scrollbar-width: thin;
+    scrollbar-color: #3B8BFC #1E293B;
+}
+
+#message-area::-webkit-scrollbar {
+    width: 6px;
+}
+
+#message-area::-webkit-scrollbar-track {
+    background: #1E293B;
+}
+
+#message-area::-webkit-scrollbar-thumb {
+    background-color: #3B8BFC;
+    border-radius: 20px;
+}
+
+/* 纵向血量条容器 - 调整为垂直方向的flex布局，让文本在底部 */
+.vertical-health-container {
+    position: absolute;
+    z-index: 15;
+    pointer-events: none;
+    width: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+/* 纵向血量条背景 - 占据除文本外的所有空间 */
+.vertical-health-bar-bg {
+    position: relative;
+    width: 100%;
+    height: calc(100% - 14px); /* 减去文本高度 */
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 0;
+    overflow: hidden;
+}
+
+/* 纵向血量条 */
+.vertical-health-bar {
+    transition: height 0.3s ease-in-out;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    border-radius: 0;
+}
+
+/* 满血状态 - 绿色 */
+.vertical-health-bar.health-full {
+    background: linear-gradient(to top, #4CAF50, #00f341);
+}
+
+/* 半血状态 - 黄色 */
+.vertical-health-bar.health-half {
+    background: linear-gradient(to top, #FFC107, #FFFF00);
+}
+
+/* 危险状态 - 红色 */
+.vertical-health-bar.health-low {
+    background: linear-gradient(to top, #F44336, #FF0000);
+}
+
+/* 纵向血量条下方的数值 - 调整为自适应大小 */
+.vertical-health-value {
+    position: relative;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    font-size: clamp(8px, 1.5vw, 10px); /* 自适应字体大小 */
+    padding: 1px 3px;
+    border-radius: 0;
+    text-align: center;
+    z-index: 30;
+    font-weight: bold;
+    min-width: 12px;
+    width: auto;
+    max-width: 40px;
+    height: 12px;
+    line-height: 12px;
+    margin-top: 2px;
+    margin-bottom: 0px;
+    white-space: nowrap;
+    overflow: visible;
+    transform-origin: center;
+}
+
+/* 当数值包含小数点时（较长），自动缩小字体 */
+.vertical-health-value.long-value {
+    font-size: 7px;
+    transform: scale(0.9);
+}
+
+/* 攻击力容器 */
+.attack-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 攻击力数值 - 调整为自适应大小 */
+.attack-value {
+    position: relative;
+    color: white;
+    font-size: clamp(9px, 2vw, 11px); /* 自适应字体大小 */
+    font-weight: bold;
+    z-index: 30;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: visible;
+    transform-origin: center;
+}
+
+/* 当攻击力包含小数点时（较长），自动缩小字体 */
+.attack-value.long-value {
+    font-size: 8px;
+    transform: scale(0.85);
+}
+
+/* 攻击力红色圆圈背景 */
+.attack-circle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: red;
+    z-index: 20;
+}
+
+/* 格子右上角信息容器 - 调整为支持垂直排列 */
+.cell-corner-info {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 15;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+}
+
+/* 属性图标样式 */
+.type-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    border-radius: 50%;
+    margin-bottom: 2px;
+}
+
+/* 攻击力容器 */
+.attack-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 攻击力数值 */
+.attack-value {
+    position: relative;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    z-index: 20;
+    text-align: center;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+}
+
+/* 红色圆圈背景 */
+.attack-circle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background-color: #F44336;
+    border-radius: 50%;
+    z-index: 10;
+}
+
+/* 联机功能样式 */
+.avatar-option {
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.avatar-option:hover, .avatar-option.selected {
+    border-color: #3B8BFC;
+    transform: scale(1.05);
+}
+
+#chat-input {
+    transition: all 0.2s ease;
+}
+
+#chat-input:focus {
+    border-color: #3B8BFC;
+}
+
+/* 自定义工具类的CSS实现 */
+.content-auto {
+    content-visibility: auto;
+}
+
+.cell-highlight {
+    animation: pulse 1.5s infinite;
+}
+
+.cell-attack {
+    animation: attack-pulse 1.2s infinite;
+}
+
+.cell-swap {
+    animation: swap-pulse 1.5s infinite;
+}
+
+.cell-blue {
+    box-shadow: 0 0 0 2px #3B8BFC, 0 0 8px 2px rgba(59, 139, 252, 0.5);
+}
+
+.cell-red {
+    box-shadow: 0 0 0 2px #FF5252, 0 0 8px 2px rgba(255, 82, 82, 0.5);
+}
+
+.cell-selected {
+    box-shadow: 0 0 0 2px #FFD700, 0 0 8px 2px rgba(255, 215, 0, 0.5);
+}
+
+.health-bar {
+    transition: width 0.3s ease-in-out;
+}
+
+/* 筛选和排序控件样式 */
+.type-filter-btn {
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.type-filter-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.type-filter-btn.bg-primary {
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 1px rgba(66, 153, 225, 0.5);
+}
+
+#type-filter-buttons {
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+
+/* 重置筛选按钮样式 */
+#reset-filter {
+    transition: all 0.2s ease;
+}
+
+#reset-filter:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 美化属性筛选按钮的滚动条 */
+#type-filter-buttons::-webkit-scrollbar {
+    width: 6px;
+}
+
+#type-filter-buttons::-webkit-scrollbar-track {
+    background: #1f2937;
+    border-radius: 3px;
+}
+
+#type-filter-buttons::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 3px;
+}
+
+#type-filter-buttons::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+}
+
+/* 卡片选中效果增强 */
+.card.ring-2.ring-primary {
+    box-shadow: 0 0 15px rgba(1, 200, 51, 1);
+}
+
+/* 联机对战弹窗样式 */ 
+ #online-modal .modal-content { 
+     background: linear-gradient(135deg, #1E293B 0%, #2D3748 100%); 
+     border-radius: 12px; 
+     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5); 
+ }
+ 
+ #online-message-area { 
+     background: rgba(0, 0, 0, 0.3); 
+     border-radius: 8px; 
+     padding: 10px; 
+     height: 120px; 
+     overflow-y: auto; 
+     font-size: 12px; 
+ }
+ 
+ #online-message-area::-webkit-scrollbar { 
+     width: 4px; 
+ }
+ 
+ #online-message-area::-webkit-scrollbar-thumb { 
+     background: #3B8BFC; 
+     border-radius: 2px; 
+ }
+ 
+ .avatar-option { 
+     transition: all 0.2s ease; 
+     border: 2px solid transparent; 
+ }
+ 
+ .avatar-option:hover { 
+     transform: scale(1.05); 
+     border-color: #3B8BFC !important; 
+ }
+ 
+ #room-code-display { 
+     font-family: monospace; 
+     font-size: 1.2em; 
+     letter-spacing: 2px; 
+     background: rgba(0, 0, 0, 0.3); 
+     padding: 5px 10px; 
+     border-radius: 4px; 
+ }
+ 
+ .online-status { 
+     display: inline-block; 
+     width: 10px; 
+     height: 10px; 
+     border-radius: 50%; 
+     background: #4CAF50; 
+     margin-right: 5px; 
+ }
+ 
+ .online-status.offline { 
+     background: #F44336; 
+ }
+
+/* 增强版动态星空效果 - 随机化改进 */
+/* 移除原有的#game-board::after样式，替换为更随机的实现 */
+#game-board::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        /* 大型星星 */
+        radial-gradient(white, rgba(255, 255, 255, 0.3) 1px, transparent 2px),
+        radial-gradient(white, rgba(255, 255, 255, 0.25) 1px, transparent 1.5px),
+        /* 中型星星 */
+        radial-gradient(white, rgba(255, 255, 255, 0.2) 1px, transparent 2px),
+        radial-gradient(white, rgba(255, 255, 255, 0.15) 1px, transparent 1.5px),
+        /* 小型星星 */
+        radial-gradient(white, rgba(255, 255, 255, 0.1) 1px, transparent 1.5px),
+        radial-gradient(white, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    /* 调整星星分布和密度 */
+    background-size: 
+        300px 300px, 
+        250px 250px, 
+        200px 200px, 
+        150px 150px, 
+        100px 100px, 
+        50px 50px;
+    /* 更随机的背景位置 */
+    background-position: 
+        0 0, 
+        50px 100px, 
+        100px 50px, 
+        150px 150px, 
+        75px 200px, 
+        125px 250px;
+    z-index: 2;
+    animation: star-twinkle 10s infinite ease-in-out;
+    animation-delay: var(--twinkle-delay, 0s);
+}
+
+/* 新增多层星空，每一层使用不同的动画延迟和参数 */
+.star-field {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 200%;
+    background-image: 
+        radial-gradient(white, rgba(255, 255, 255, 0.2) 1px, transparent 1.5px),
+        radial-gradient(white, rgba(255, 255, 255, 0.15) 1px, transparent 1.5px),
+        radial-gradient(white, rgba(255, 255, 255, 0.1) 1px, transparent 1.5px);
+    background-size: 
+        350px 350px, 
+        250px 250px, 
+        150px 150px;
+    /* 更随机的位置 */
+    background-position: 
+        0 0, 
+        40px 60px, 
+        130px 270px;
+    z-index: 3;
+    animation: star-move 60s linear infinite;
+    animation-delay: var(--move-delay, 0s);
+}
+
+/* 随机化不同层的星星动画 */
+.star-field.layer-1 { --move-delay: 0s; --twinkle-delay: 0s; }
+.star-field.layer-2 { --move-delay: 10s; --twinkle-delay: 2s; }
+.star-field.layer-3 { --move-delay: 20s; --twinkle-delay: 4s; }
+.star-field.layer-4 { --move-delay: 30s; --twinkle-delay: 1s; }
+.star-field.layer-5 { --move-delay: 40s; --twinkle-delay: 3s; }
+
+/* 第三层移动较慢的星空 */
+.star-field.layer-2 {
+    width: 150%;
+    height: 150%;
+    background-image: 
+        radial-gradient(white, rgba(255, 255, 255, 0.15) 1px, transparent 2px),
+        radial-gradient(white, rgba(255, 255, 255, 0.1) 1px, transparent 1.5px);
+    background-size: 
+        450px 450px, 
+        350px 350px;
+    background-position: 
+        100px 100px, 
+        200px 150px;
+    z-index: 4;
+    animation: star-move-slow 120s linear infinite;
+}
+
+/* 添加更多随机分布的星星层 */
+.star-field.layer-3 {
+    width: 180%;
+    height: 180%;
+    background-image: 
+        radial-gradient(white, rgba(255, 255, 255, 0.18) 1px, transparent 1.8px),
+        radial-gradient(white, rgba(255, 255, 255, 0.12) 1px, transparent 1.3px);
+    background-size: 
+        400px 400px, 
+        300px 300px;
+    background-position: 
+        80px 120px, 
+        150px 200px;
+    z-index: 5;
+    animation: star-move-medium 80s linear infinite;
+}
+
+.star-field.layer-4 {
+    width: 130%;
+    height: 130%;
+    background-image: 
+        radial-gradient(white, rgba(255, 255, 255, 0.1) 1px, transparent 1.5px);
+    background-size: 
+        280px 280px;
+    background-position: 
+        120px 80px;
+    z-index: 6;
+    animation: star-move-fast 40s linear infinite;
+}
+
+.star-field.layer-5 {
+    width: 220%;
+    height: 220%;
+    background-image: 
+        radial-gradient(white, rgba(255, 255, 255, 0.08) 1px, transparent 1.2px),
+        radial-gradient(white, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 
+        320px 320px, 
+        220px 220px;
+    background-position: 
+        140px 160px, 
+        220px 90px;
+    z-index: 7;
+    animation: star-move-super-slow 150s linear infinite;
+}
+
+/* 多个不同的星星闪烁动画，增加随机性 */
+@keyframes star-twinkle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    25% { opacity: 0.8; transform: scale(0.95); }
+    50% { opacity: 1; transform: scale(1.05); }
+    75% { opacity: 0.9; transform: scale(0.98); }
+}
+
+/* 第二个闪烁动画，节奏略有不同 */
+@keyframes star-twinkle-2 {
+    0%, 100% { opacity: 0.9; transform: scale(0.95); }
+    20% { opacity: 1; transform: scale(1); }
+    55% { opacity: 0.85; transform: scale(0.98); }
+    85% { opacity: 1; transform: scale(1.02); }
+}
+
+/* 第三个闪烁动画 */
+@keyframes star-twinkle-3 {
+    0%, 100% { opacity: 0.95; transform: scale(1); }
+    30% { opacity: 0.7; transform: scale(0.9); }
+    60% { opacity: 1; transform: scale(1.08); }
+    80% { opacity: 0.85; transform: scale(0.97); }
+}
+
+/* 应用不同的闪烁动画到不同层 */
+.star-field.layer-1 {
+    animation: star-twinkle 10s infinite ease-in-out, star-move 60s linear infinite;
+}
+
+.star-field.layer-2 {
+    animation: star-twinkle-2 12s infinite ease-in-out, star-move-slow 120s linear infinite;
+}
+
+.star-field.layer-3 {
+    animation: star-twinkle-3 8s infinite ease-in-out, star-move-medium 80s linear infinite;
+}
+
+.star-field.layer-4 {
+    animation: star-twinkle 14s infinite ease-in-out, star-move-fast 40s linear infinite;
+}
+
+.star-field.layer-5 {
+    animation: star-twinkle-2 16s infinite ease-in-out, star-move-super-slow 150s linear infinite;
+}
+
+/* 星空缓慢移动动画 - 添加一些随机的移动路径 */
+@keyframes star-move {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-15%, -5%); }
+    50% { transform: translate(-30%, -15%); }
+    75% { transform: translate(-42%, -20%); }
+    100% { transform: translate(-50%, -25%); }
+}
+
+/* 第二层星空更缓慢移动 */
+@keyframes star-move-slow {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-8%, -3%); }
+    50% { transform: translate(-15%, -7%); }
+    75% { transform: translate(-20%, -10%); }
+    100% { transform: translate(-25%, -12.5%); }
+}
+
+/* 中等速度移动动画 */
+@keyframes star-move-medium {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-20%, -10%); }
+    50% { transform: translate(-40%, -20%); }
+    75% { transform: translate(-60%, -25%); }
+    100% { transform: translate(-70%, -30%); }
+}
+
+/* 快速移动动画 */
+@keyframes star-move-fast {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-30%, -15%); }
+    50% { transform: translate(-60%, -30%); }
+    75% { transform: translate(-90%, -40%); }
+    100% { transform: translate(-120%, -50%); }
+}
+
+/* 超慢速移动动画 */
+@keyframes star-move-super-slow {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-5%, -2%); }
+    50% { transform: translate(-10%, -5%); }
+    75% { transform: translate(-18%, -8%); }
+    100% { transform: translate(-25%, -12%); }
+}
