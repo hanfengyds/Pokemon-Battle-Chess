@@ -9,8 +9,12 @@ const gameState = {
     swappablePieces: [], // 可交换的友方棋子
     pieces: [],
     selectedPieces: { blue: [], red: [] },
-    gameStarted: false
+    gameStarted: false,
+    devouredPieces: [] // 新增：记录恶食大王已经吞噬过的友军棋子ID
 };
+
+// 在全局作用域添加定时器变量
+let borderUpdateInterval = null;
 
 // 联机状态变量
 const onlineState = {
@@ -272,13 +276,28 @@ function updateChatMessages(chatData) {
   const messages = Object.entries(chatData)
     .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
   
+  // 获取最后一条消息的时间戳用于去重检查
+  const lastTimestamp = messageArea.lastElementChild?.dataset.timestamp;
+  
   messages.forEach(([timestamp, message]) => {
+    // 检查是否已经显示过这条消息（避免重复添加）
+    if (lastTimestamp && parseInt(timestamp) <= parseInt(lastTimestamp)) {
+      return;
+    }
+    
     const isOwn = message.sender === onlineState.playerId;
     const senderName = isOwn ? '你' : '对手';
     
-    // 在主消息区域显示聊天消息
-    addMessage(`<span class="${isOwn ? 'text-blue-300' : 'text-green-300'}">${senderName}: ${message.message}</span>`);
+    // 在主消息区域显示聊天消息，添加时间戳数据属性用于去重
+    const messageEl = document.createElement('div');
+    messageEl.classList.add('bg-gray-800/50', 'border-l-4', 'border-primary', 'p-3', 'rounded', 'text-sm');
+    messageEl.dataset.timestamp = timestamp;
+    messageEl.innerHTML = `<span class="${isOwn ? 'text-blue-300' : 'text-green-300'}">${senderName}: ${message.message}</span>`;
+    
+    messageArea.appendChild(messageEl);
   });
+  
+  messageArea.scrollTop = messageArea.scrollHeight;
 }
 
 // 复制房间号
@@ -458,8 +477,19 @@ function applyGameState(remoteState) {
     gameState.selectedPiece = null;
   }
   
-  // 重新渲染棋盘
-  renderPieces();
+  // 重新渲染棋盘 - 添加错误处理
+  try {
+    renderPieces();
+  } catch (error) {
+    console.error('渲染棋子时出错:', error);
+    // 如果渲染失败，延迟重试
+    setTimeout(() => {
+      if (gameState.gameStarted) {
+        renderPieces();
+      }
+    }, 100);
+  }
+  
   updateMoveCounter();
   
   // 如果当前玩家是自己，高亮可选移动
@@ -817,33 +847,39 @@ function updateFilteredPokemon() {
         card.dataset.id = pokemon.id;
         
         card.innerHTML = `
-            <div class="relative">
-                <img src="${pokemon.image}" alt="${pokemon.name}" class="w-full h-32 object-contain bg-gray-800">
-                <div class="absolute top-2 right-2">
-                    <img src="type/${pokemon.type}.png" alt="${pokemon.typeName}系" class="type-icon">
-                </div>
-                <div class="absolute top-2 left-2 bg-primary/80 text-white text-xs px-2 py-1 rounded-full select-indicator hidden">
-                    已选择
-                </div>
-            </div>
-            <div class="p-3">
-                <h3 class="text-lg font-bold mb-1">${pokemon.name}</h3>
-                <div class="space-y-0.5 text-xs">
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">体力 (HP):</span>
-                        <span class="text-red-400">${pokemon.hp}</span>
+                    <div class="relative">
+                        <img src="${pokemon.image}" alt="${pokemon.name}" class="w-full h-32 object-contain bg-gray-800">
+                        <div class="absolute top-2 right-2">
+                            ${Array.isArray(pokemon.type) ? 
+                                `<div class="flex flex-row items-center gap-1">
+                                    <img src="type/${pokemon.type[0]}.png" alt="${pokemon.typeName[0]}系" class="type-icon w-5 h-5">
+                                    <img src="type/${pokemon.type[1]}.png" alt="${pokemon.typeName[1]}系" class="type-icon w-5 h-5">
+                                </div>` : 
+                                `<img src="type/${pokemon.type}.png" alt="${pokemon.typeName}系" class="type-icon">`
+                            }
+                        </div>
+                        <div class="absolute top-2 left-2 bg-primary/80 text-white text-xs px-2 py-1 rounded-full select-indicator hidden">
+                            已选择
+                        </div>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">攻击 (ATK):</span>
-                        <span class="text-yellow-400">${pokemon.atk}</span>
+                    <div class="p-3">
+                        <h3 class="text-lg font-bold mb-1">${pokemon.name}</h3>
+                        <div class="space-y-0.5 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">体力 (HP):</span>
+                                <span class="text-red-400">${pokemon.hp}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">攻击 (ATK):</span>
+                                <span class="text-yellow-400">${pokemon.atk}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">距离（MOVE）:</span>
+                                <span class="text-green-400">${pokemon.move}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">距离（MOVE）:</span>
-                        <span class="text-green-400">${pokemon.move}</span>
-                    </div>
-                </div>
-            </div>
-        `;
+                `;
         
         card.addEventListener('click', () => togglePokemonSelection(pokemon.id));
         
@@ -1030,6 +1066,11 @@ function renderPieces() {
     // 移除所有血量条
     document.querySelectorAll('.vertical-health-container').forEach(healthBar => healthBar.remove());
     
+    // 移除所有特效
+    if (window.pokemonAbilities && window.pokemonAbilities.kyogre) {
+        window.pokemonAbilities.kyogre.removeRainEffects();
+    }
+    
     // 清空所有格子的角落信息
     document.querySelectorAll('.cell-corner-info').forEach(info => {
         info.innerHTML = '';
@@ -1047,18 +1088,33 @@ function renderPieces() {
     
     // 渲染每个棋子
     gameState.pieces.forEach(piece => {
+        // 为盖欧卡添加下雨特效
+        if (window.pokemonAbilities && window.pokemonAbilities.kyogre) {
+            const rainEffect = window.pokemonAbilities.kyogre.createRainEffect(piece, cellWidth, cellHeight);
+            if (rainEffect) {
+                gameBoard.appendChild(rainEffect);
+            }
+        }
         const pieceEl = document.createElement('div');
         pieceEl.classList.add('piece', 'rounded-lg', 'overflow-hidden');
         pieceEl.dataset.id = piece.id;
         pieceEl.dataset.player = piece.player;
         pieceEl.dataset.type = piece.type;
         
-        // 设置位置 - 居中显示在格子内
-        const left = piece.x * cellWidth + (cellWidth - pieceSize) / 2;
-        const top = (gameState.boardSize.y - 1 - piece.y) * cellHeight + (cellHeight - pieceSize) / 2;
+        let finalPieceSize = pieceSize;
         
-        pieceEl.style.width = `${pieceSize}px`;
-        pieceEl.style.height = `${pieceSize}px`;
+        // 检查是否为恶食大王且已经吞噬过友军
+        if (piece.name === '恶食大王' && gameState.devouredPieces.length > 0) {
+            // 放大2倍
+            finalPieceSize = pieceSize * 1.75;
+        }
+        
+        // 设置位置 - 居中显示在格子内
+        const left = piece.x * cellWidth + (cellWidth - finalPieceSize) / 2;
+        const top = (gameState.boardSize.y - 1 - piece.y) * cellHeight + (cellHeight - finalPieceSize) / 2;
+        
+        pieceEl.style.width = `${finalPieceSize}px`;
+        pieceEl.style.height = `${finalPieceSize}px`;
         pieceEl.style.left = `${left}px`;
         pieceEl.style.top = `${top}px`;
         
@@ -1090,6 +1146,11 @@ function renderPieces() {
         } else if (healthPercentage <= 50) {
             healthBarClass = 'health-half';
         }
+        
+        // 检查是否为恶食大王且已经吞噬过友军
+        if (piece.name === '恶食大王' && gameState.devouredPieces.length > 0) {
+            healthBarClass = 'health-guzzlord'; // 使用紫色血量条
+        }
 
         healthContainer.innerHTML = `
             <div class="vertical-health-bar-bg">
@@ -1103,15 +1164,33 @@ function renderPieces() {
         // 在格子右上角显示属性图标和攻击力
         const cornerInfo = document.querySelector(`.cell-corner-info[data-x="${piece.x}"][data-y="${piece.y}"]`);
         if (cornerInfo) {
-            cornerInfo.innerHTML = `
-                <div class="flex flex-col items-center gap-1">
-                    <img src="type/${piece.type}.png" alt="${piece.typeName}系" class="type-icon w-5 h-5">
-                    <div class="attack-container">
-                        <div class="attack-circle"></div>
-                        <div class="attack-value">${piece.atk}</div>
+            // 判断是否为双属性棋子
+                if (Array.isArray(piece.type)) {
+                    // 双属性：两个属性图标水平平行排列，攻击力显示在下方
+                    cornerInfo.innerHTML = `
+                        <div class="flex flex-col items-center gap-0">
+                            <div class="flex flex-row items-center gap-1">
+                                <img src="type/${piece.type[0]}.png" alt="${piece.typeName[0]}系" class="type-icon w-5 h-5">
+                                <img src="type/${piece.type[1]}.png" alt="${piece.typeName[1]}系" class="type-icon w-5 h-5">
+                            </div>
+                            <div class="attack-container mt-0 self-end">
+                                <div class="attack-circle"></div>
+                                <div class="attack-value">${piece.atk}</div>
+                            </div>
+                        </div>
+                    `;
+            } else {
+                // 单属性：保持原来的显示方式
+                cornerInfo.innerHTML = `
+                    <div class="flex flex-col items-center gap-1">
+                        <img src="type/${piece.type}.png" alt="${piece.typeName}系" class="type-icon w-5 h-5">
+                        <div class="attack-container">
+                            <div class="attack-circle"></div>
+                            <div class="attack-value">${piece.atk}</div>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         }
     });
     
@@ -1196,6 +1275,12 @@ function forceHighlightSelectedPiece() {
 // 处理格子点击
 function handleCellClick(x, y) {
     if (!gameState.gameStarted) return;
+    
+    // AI模式下，如果是AI回合，不允许玩家操作
+    if (aiGameState && aiGameState.isAIMode && aiGameState.aiTurn) {
+        addMessage('AI回合中，请等待AI行动完成', 'error');
+        return;
+    }
     
     // 在线模式下，如果不是当前玩家回合，不允许操作
     if (onlineState.isOnline && gameState.currentPlayer !== onlineState.playerRole) {
@@ -1282,11 +1367,16 @@ function calculateAvailableMovesAndAttacks(piece) {
     const moves = [];
     const attackable = [];
     const swappable = []; // 可交换的友方棋子
+    const devourable = []; // 可吞噬的友方棋子（恶食大王专用）
     const maxDistance = piece.move;
+    
+    // 处理双属性精灵
+    const pieceTypes = Array.isArray(piece.type) ? piece.type : [piece.type];
     
     let directions = [];
     
-    if (piece.type === 'electric') {
+    // 检查是否为电系（支持双属性）
+    if (pieceTypes.includes('electric')) {
         directions = [
             {dx: 1, dy: 0}, {dx: -1, dy: 0}, {dx: 0, dy: 1}, {dx: 0, dy: -1},
             {dx: 1, dy: 1}, {dx: 1, dy: -1}, {dx: -1, dy: 1}, {dx: -1, dy: -1}
@@ -1318,12 +1408,16 @@ function calculateAvailableMovesAndAttacks(piece) {
                     attackable.push(blockingPiece);
                 } 
                 // 如果是友方棋子，且当前是超能系，则可以交换
-                else if (blockingPiece.player === piece.player && piece.type === 'psychic') {
+                else if (blockingPiece.player === piece.player && pieceTypes.includes('psychic')) {
                     swappable.push(blockingPiece);
+                }
+                // 如果是友方棋子，且当前是恶食大王，则可以吞噬
+                else if (blockingPiece.player === piece.player && pokemonAbilities.guzzlord.isGuzzlord(piece)) {
+                    devourable.push(blockingPiece);
                 }
                 
                 // 飞行系可以飞跃面前的第一个非飞行系棋子
-                if (piece.type === 'flying' && distance === 1) {
+                if (pieceTypes.includes('flying') && distance === 1) {
                     const jumpX = piece.x + dx * (distance + 1);
                     const jumpY = piece.y + dy * (distance + 1);
                     
@@ -1343,6 +1437,12 @@ function calculateAvailableMovesAndAttacks(piece) {
         }
     });
     
+    // 将可吞噬的友方棋子添加到可攻击列表中，以便显示紫色光效
+    if (pokemonAbilities.guzzlord.isGuzzlord(piece)) {
+        gameState.devourablePieces = devourable;
+        attackable.push(...devourable);
+    }
+    
     return {moves, attackable, swappable};
 }
 
@@ -1353,7 +1453,10 @@ function isInRiver(y) {
 
 // 检查是否可以在河流行移动
 function canMoveInRiver(piece, dx, dy) {
-    if (piece.type === 'water') {
+    // 处理双属性精灵
+    const pieceTypes = Array.isArray(piece.type) ? piece.type : [piece.type];
+    
+    if (pieceTypes.includes('water')) {
         return true;
     }
     
@@ -1531,6 +1634,20 @@ function handleAttack(targetId) {
     
     if (!target) return;
     
+    // 检查是否为恶食大王的吞噬友军攻击
+    if (pokemonAbilities.guzzlord.isGuzzlord(attacker) && target.player === attacker.player) {
+        // 如果已经吞噬过友军，完全阻止攻击
+        if (gameState.devouredPieces.length > 0) {
+            addMessage(`${attacker.name} 已经吞噬过友军，无法再次攻击友军！`);
+            return;
+        }
+        
+        // 处理吞噬友军攻击
+        if (pokemonAbilities.guzzlord.handleDevourAttack(attacker, targetId)) {
+            return; // 吞噬攻击已处理，直接返回
+        }
+    }
+    
     const isImmune = checkImmunity(attacker, target);
     const isSuper = !isImmune && isSuperEffective(attacker, target);
     const isNot = !isImmune && !isSuper && isNotEffective(attacker, target);
@@ -1686,21 +1803,78 @@ function showSwapPopup(x, y) {
     }, 1000);
 }
 
-// 计算伤害
+// 计算伤害 - 双属性伤害最大化版本
 function calculateDamage(attacker, target) {
-    let damage = attacker.atk;
+    let baseDamage = attacker.atk;
     
-    const attackerTypeData = typeChart[attacker.type];
+    // 处理攻击方和目标方的双属性
+    const attackerTypes = Array.isArray(attacker.type) ? attacker.type : [attacker.type];
+    const targetTypes = Array.isArray(target.type) ? target.type : [target.type];
     
-    if (attackerTypeData && attackerTypeData.strong && attackerTypeData.strong.includes(target.type)) {
-        damage += 1;
+    let maxDamage = -Infinity; // 记录最大伤害
+    
+    // 检查免疫关系：如果任一攻击属性被任一目标属性免疫，该属性攻击无效
+    for (const attackerType of attackerTypes) {
+        const attackerTypeData = typeChart[attackerType];
+        if (attackerTypeData && attackerTypeData.immune) {
+            for (const targetType of targetTypes) {
+                if (attackerTypeData.immune.includes(targetType)) {
+                    // 该攻击属性被免疫，跳过这个属性的计算
+                    continue;
+                }
+            }
+        }
     }
     
-    if (attackerTypeData && attackerTypeData.weak && attackerTypeData.weak.includes(target.type)) {
-        damage -= 1;
+    // 分别计算攻击方每个属性的伤害，取最大值
+    for (const attackerType of attackerTypes) {
+        const attackerTypeData = typeChart[attackerType];
+        if (!attackerTypeData) continue;
+        
+        // 检查该攻击属性是否被目标任一属性免疫
+        let isImmune = false;
+        for (const targetType of targetTypes) {
+            if (attackerTypeData.immune && attackerTypeData.immune.includes(targetType)) {
+                isImmune = true;
+                break;
+            }
+        }
+        if (isImmune) continue; // 该属性攻击被免疫，跳过
+        
+        let typeModifier = 0;
+        
+        // 计算该攻击属性对目标所有属性的总修正
+        for (const targetType of targetTypes) {
+            // 检查克制关系（+1）
+            if (attackerTypeData.strong && attackerTypeData.strong.includes(targetType)) {
+                typeModifier += 1;
+            }
+            // 检查抵抗关系（-1）
+            if (attackerTypeData.weak && attackerTypeData.weak.includes(targetType)) {
+                typeModifier -= 1;
+            }
+        }
+        
+        // 计算该属性造成的伤害
+        const damageForThisType = baseDamage + typeModifier;
+        
+        // 取最大值
+        if (damageForThisType > maxDamage) {
+            maxDamage = damageForThisType;
+        }
     }
     
-    return Math.max(0, damage);
+    // 如果所有属性都被免疫，返回0伤害
+    if (maxDamage === -Infinity) {
+        return 0;
+    }
+    
+    // 确保伤害不为负数，但最低伤害为0.5（除非免疫）
+    if (maxDamage <= 0) {
+        return 0.5;
+    }
+    
+    return maxDamage;
 }
 
 // 更新移动计数器
@@ -1834,6 +2008,12 @@ function resetGame() {
     }
   }
   
+  // 清理定时器
+  if (borderUpdateInterval) {
+      clearInterval(borderUpdateInterval);
+      borderUpdateInterval = null;
+  }
+  
   // 实际重置游戏逻辑
   gameState.gameStarted = false;
   gameState.currentPlayer = 'blue';
@@ -1843,6 +2023,7 @@ function resetGame() {
   gameState.attackablePieces = [];
   gameState.swappablePieces = []; // 清空可交换列表
   gameState.pieces = [];
+  gameState.devouredPieces = []; // 新增：清空已吞噬的棋子记录
   
   document.querySelectorAll('.piece').forEach(piece => piece.remove());
   
@@ -1878,6 +2059,12 @@ function resetGame() {
 
 // 实际执行重置的函数
 function performActualReset() {
+  // 清理定时器
+  if (borderUpdateInterval) {
+      clearInterval(borderUpdateInterval);
+      borderUpdateInterval = null;
+  }
+  
   gameState.gameStarted = false;
   gameState.currentPlayer = 'blue';
   gameState.movesRemaining = 2;
@@ -1886,6 +2073,7 @@ function performActualReset() {
   gameState.attackablePieces = [];
   gameState.swappablePieces = [];
   gameState.pieces = [];
+  gameState.devouredPieces = []; // 新增：清空已吞噬的棋子记录
   
   document.querySelectorAll('.piece').forEach(piece => piece.remove());
   
@@ -2015,8 +2203,12 @@ window.addEventListener('resize', () => {
     }
 });
     
-    // 增加定时检查，确保高亮状态
-    setInterval(() => {
+    // 增加定时检查，确保高亮状态 - 修改为可清理的定时器
+    if (borderUpdateInterval) {
+        clearInterval(borderUpdateInterval);
+    }
+    
+    borderUpdateInterval = setInterval(() => {
         if (gameState.gameStarted) {
             // 定期更新边框，确保不会消失
             updatePieceBorders();
