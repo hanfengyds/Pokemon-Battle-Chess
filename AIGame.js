@@ -158,11 +158,9 @@ function aiTurn() {
                     return damage > calculateDamage(aiPiece, best) ? target : best;
                 }, attackable[0]);
                 
-                // 执行攻击
-                selectPiece(aiPiece);
-                handleAttack(bestTarget.id);
+                // 执行攻击 - 使用专门的AI攻击函数
+                executeAIAttack(aiPiece, bestTarget);
                 actionTaken = true;
-                actionsTaken++;
                 break;
             }
         }
@@ -183,10 +181,9 @@ function aiTurn() {
                             return moveDist < bestDist ? move : best;
                         }, moves[0]);
                         
-                        selectPiece(aiPiece);
-                        handleMove(closestMove.x, closestMove.y, aiPiece.x, aiPiece.y);
+                        // 执行移动 - 使用专门的AI移动函数
+                        executeAIMove(aiPiece, closestMove);
                         actionTaken = true;
-                        actionsTaken++;
                         break;
                     }
                 }
@@ -201,22 +198,67 @@ function aiTurn() {
             return;
         }
         
-        // 等待行动完成后执行下一次行动
-        setTimeout(executeAIAction, 1500);
+        // 等待行动完成后增加计数并执行下一次行动
+        setTimeout(() => {
+            actionsTaken++;
+            executeAIAction();
+        }, 1500);
     };
     
     // 开始执行第一次行动
     setTimeout(executeAIAction, 1000);
 }
 
+// 专门的AI攻击函数
+function executeAIAttack(attacker, target) {
+    selectPiece(attacker);
+    
+    // 计算伤害
+    const damage = calculateDamage(attacker, target);
+    
+    // 应用伤害
+    target.currentHp -= damage;
+    
+    addMessage(`AI的 ${attacker.name} 攻击了 ${target.name}，造成了 ${damage} 点伤害！`);
+    
+    // 检查目标是否被击败
+    if (target.currentHp <= 0) {
+        gameState.pieces = gameState.pieces.filter(p => p.id !== target.id);
+        addMessage(`${target.name} 被击败了！`);
+        checkGameEnd();
+    }
+    
+    // 重新渲染
+    renderPieces();
+}
+
+// 专门的AI移动函数
+function executeAIMove(piece, move) {
+    const oldX = piece.x;
+    const oldY = piece.y;
+    
+    // 更新棋子位置
+    piece.x = move.x;
+    piece.y = move.y;
+    
+    // 重新渲染
+    renderPieces();
+    
+    addMessage(`AI的 ${piece.name} 从 (${oldX},${oldY}) 移动到 (${move.x},${move.y})`);
+}
 // 重写回合切换函数以支持AI
 const originalSwitchTurn = switchTurn;
 switchTurn = function() {
     originalSwitchTurn();
     
-    if (aiGameState.isAIMode && gameState.currentPlayer === 'red') {
-        aiGameState.aiTurn = true;
-        setTimeout(aiTurn, 1000);
+    // 只有在AI模式下且当前玩家是红色方时才触发AI回合
+    // 并且确保不是游戏刚开始时的第一次回合切换
+    if (aiGameState.isAIMode && gameState.currentPlayer === 'red' && gameState.gameStarted) {
+        // 添加额外检查，确保不是连续触发
+        if (!aiGameState.aiTurn) {
+            aiGameState.aiTurn = true;
+            setTimeout(aiTurn, 1000);
+        }
     }
 };
 
