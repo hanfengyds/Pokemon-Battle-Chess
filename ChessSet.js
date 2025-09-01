@@ -33,7 +33,7 @@
         {
             id: 'tangrowth',
             name: '巨蔓藤',
-            hp: 5,
+            hp: 6,
             atk: 1.5,
             move: 2,
             type: 'grass',
@@ -59,16 +59,6 @@
             type: 'ground',
             typeName: '地面',
             image: '棋子（正面）/穿山王.gif'
-        },
-        {
-            id: 'aggron',
-            name: '波士可多拉',
-            hp: 5,
-            atk: 2,
-            move: 2,
-            type: 'steel',
-            typeName: '钢',
-            image: '棋子（正面）/波士可多拉.gif'
         },
         {
             id: 'accelgor',
@@ -111,16 +101,6 @@
             image: '棋子（正面）/双弹瓦斯.gif'
         },
         {
-            id: 'groudon',
-            name: '固拉多',
-            hp: 4.5,
-            atk: 3,
-            move: 2,
-            type: 'ground',
-            typeName: '地面',
-            image: '棋子（正面）/固拉多.gif'
-        },
-        {
             id: 'alakazam',
             name: '胡地',
             hp: 1.5,
@@ -159,6 +139,36 @@
             type: 'dragon',
             typeName: '龙',
             image: '棋子（正面）/双斧战龙.gif'
+        },
+                                {
+            id: 'venusaur',
+            name: '妙蛙花',
+            hp: 3.5,
+            atk: 1.5,
+            move: 2,
+            type: ['grass','poison'],
+            typeName: ['草','毒'],
+            image: '棋子（正面）/妙蛙花.gif'
+        },
+                                        {
+            id: 'steelix',
+            name: '大钢蛇',
+            hp: 4.5,
+            atk: 2,
+            move: 2,
+            type: ['steel','ground'],
+            typeName: ['铁','地面'],
+            image: '棋子（正面）/大钢蛇.gif'
+        },
+                                               {
+            id: 'guzzlord ',
+            name: '恶食大王',
+            hp: 5,
+            atk: 2,
+            move: 2,
+            type: ['dark','dragon'],
+            typeName: ['恶','龙'],
+            image: '棋子（正面）/恶食大王.gif'
         },
     ];
 
