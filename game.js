@@ -270,25 +270,28 @@ function handleRoomUpdate(snapshot) {
   }
 }
 
+// 在文件顶部添加全局变量
+let processedMessageTimestamps = new Set();
+
 // 更新聊天消息
 function updateChatMessages(chatData) {
   // 按时间顺序排序消息
   const messages = Object.entries(chatData)
     .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
   
-  // 获取最后一条消息的时间戳用于去重检查
-  const lastTimestamp = messageArea.lastElementChild?.dataset.timestamp;
-  
   messages.forEach(([timestamp, message]) => {
-    // 检查是否已经显示过这条消息（避免重复添加）
-    if (lastTimestamp && parseInt(timestamp) <= parseInt(lastTimestamp)) {
+    // 检查是否已经处理过这条消息（避免重复添加）
+    if (processedMessageTimestamps.has(timestamp)) {
       return;
     }
+    
+    // 标记为已处理
+    processedMessageTimestamps.add(timestamp);
     
     const isOwn = message.sender === onlineState.playerId;
     const senderName = isOwn ? '你' : '对手';
     
-    // 在主消息区域显示聊天消息，添加时间戳数据属性用于去重
+    // 在主消息区域显示聊天消息，添加时间戳数据属性
     const messageEl = document.createElement('div');
     messageEl.classList.add('bg-gray-800/50', 'border-l-4', 'border-primary', 'p-3', 'rounded', 'text-sm');
     messageEl.dataset.timestamp = timestamp;
@@ -298,6 +301,15 @@ function updateChatMessages(chatData) {
   });
   
   messageArea.scrollTop = messageArea.scrollHeight;
+  
+  // 可选：定期清理过旧的时间戳，避免内存泄漏
+  if (processedMessageTimestamps.size > 100) {
+    const currentTime = Date.now();
+    const oneHourAgo = currentTime - 3600000;
+    processedMessageTimestamps = new Set(
+      [...processedMessageTimestamps].filter(ts => parseInt(ts) > oneHourAgo)
+    );
+  }
 }
 
 // 复制房间号
@@ -425,25 +437,47 @@ function startOnlineGame() {
 
 // 新的开始游戏函数（使用各自选择的棋子）
 function startOnlineGameWithPieces() {
-  gameState.gameStarted = true;
-  gameState.currentPlayer = 'blue'; // 蓝色先手
-  gameState.movesRemaining = 2;
-  
-  placeInitialPieces();
-  
-  updateMoveCounter();
-  
-  // 通过消息区域播报游戏开始信息
-  addMessage('联机游戏开始！<span class="text-primary font-bold">蓝色方先行</span>');
-  addMessage(`你是${onlineState.playerRole === 'blue' ? '蓝色方' : '红色方'}`);
-  
-  // 同步游戏状态
-  if (onlineState.isOnline) {
-    syncGameState();
+  // 检查双方是否都已确认选择
+  if (!onlineState.isReady || !onlineState.opponentReady) {
+    console.log('等待双方确认...');
+    setTimeout(startOnlineGameWithPieces, 100);
+    return;
   }
   
-  // 确保游戏开始时边框正确显示
-  updatePieceBorders();
+  // 只有房主（蓝色方）执行初始棋子放置和同步
+  if (onlineState.playerRole === 'blue') {
+    gameState.gameStarted = true;
+    gameState.currentPlayer = 'blue'; // 蓝色先手
+    gameState.movesRemaining = 2;
+    
+    // 确保双方的棋子选择都已同步
+    if (gameState.selectedPieces.blue.length !== 6 || gameState.selectedPieces.red.length !== 6) {
+      console.log('等待棋子选择同步...');
+      setTimeout(startOnlineGameWithPieces, 100);
+      return;
+    }
+    
+    placeInitialPieces();
+    
+    updateMoveCounter();
+    
+    // 通过消息区域播报游戏开始信息
+    addMessage('联机游戏开始！<span class="text-primary font-bold">蓝色方先行</span>');
+    addMessage(`你是${onlineState.playerRole === 'blue' ? '蓝色方' : '红色方'}`);
+    
+    // 同步游戏状态
+    if (onlineState.isOnline) {
+        syncGameState();
+    }
+    
+    // 确保游戏开始时边框正确显示
+    updatePieceBorders();
+  } else {
+    // 被邀请方（红色方）等待同步
+    gameState.gameStarted = true;
+    onlineState.isOnline = true; // 添加这行代码
+    addMessage('联机游戏开始！等待房主放置棋子...');
+  }
 }
 
 // 同步游戏状态到Firebase
@@ -995,17 +1029,17 @@ function togglePokemonSelection(pokemonId) {
         
         selectedPieces.push(selectedPokemon);
         
-        // 同步到Firebase（联机模式下）
-        if (onlineState.isOnline && onlineState.roomId) {
-            syncSelectedPieces();
-        }
+        // 移除立即同步的逻辑
+        // if (onlineState.isOnline && onlineState.roomId) {
+        //     syncSelectedPieces();
+        // }
     } else {
         selectedPieces.splice(index, 1);
         
-        // 同步到Firebase（联机模式下）
-        if (onlineState.isOnline && onlineState.roomId) {
-            syncSelectedPieces();
-        }
+        // 移除立即同步的逻辑
+        // if (onlineState.isOnline && onlineState.roomId) {
+        //     syncSelectedPieces();
+        // }
     }
     
     // 更新选择指示器
@@ -1060,37 +1094,47 @@ function updateConfirmButton() {
 
 // 放置初始棋子
 function placeInitialPieces() {
-    gameState.pieces = [];
-    
-    // 蓝色方棋子
-    initialPositions.blue.forEach((pos, index) => {
-        if (gameState.selectedPieces.blue[index]) {
-            const pokemon = {...gameState.selectedPieces.blue[index]};
-            gameState.pieces.push({
-                ...pokemon,
-                x: pos.x,
-                y: pos.y,
-                player: 'blue',
-                id: `${pokemon.id}-blue-${index}`
-            });
-        }
-    });
-    
-    // 红色方棋子
-    initialPositions.red.forEach((pos, index) => {
-        if (gameState.selectedPieces.red[index]) {
-            const pokemon = {...gameState.selectedPieces.red[index]};
-            gameState.pieces.push({
-                ...pokemon,
-                x: pos.x,
-                y: pos.y,
-                player: 'red',
-                id: `${pokemon.id}-red-${index}`
-            });
-        }
-    });
-    
-    renderPieces();
+  // 检查双方是否都有6个棋子
+  if (gameState.selectedPieces.blue.length !== 6 || gameState.selectedPieces.red.length !== 6) {
+    console.warn('双方棋子选择未完成，等待同步...');
+    console.log('蓝色方棋子:', gameState.selectedPieces.blue.length);
+    console.log('红色方棋子:', gameState.selectedPieces.red.length);
+    setTimeout(placeInitialPieces, 100);
+    return;
+  }
+  
+  gameState.pieces = [];
+  
+  // 蓝色方棋子
+  initialPositions.blue.forEach((pos, index) => {
+      if (gameState.selectedPieces.blue[index]) {
+          const pokemon = {...gameState.selectedPieces.blue[index]};
+          gameState.pieces.push({
+              ...pokemon,
+              x: pos.x,
+              y: pos.y,
+              player: 'blue',
+              id: `${pokemon.id}-blue-${index}`
+          });
+      }
+  });
+  
+  // 红色方棋子
+  initialPositions.red.forEach((pos, index) => {
+      if (gameState.selectedPieces.red[index]) {
+          const pokemon = {...gameState.selectedPieces.red[index]};
+          gameState.pieces.push({
+              ...pokemon,
+              x: pos.x,
+              y: pos.y,
+              player: 'red',
+              id: `${pokemon.id}-red-${index}`
+          });
+      }
+  });
+  
+  console.log('放置棋子完成，总共:', gameState.pieces.length);
+  renderPieces();
 }
 
 // 渲染棋子
@@ -1101,10 +1145,10 @@ function renderPieces() {
     // 移除所有血量条
     document.querySelectorAll('.vertical-health-container').forEach(healthBar => healthBar.remove());
     
-    // 移除所有特效（注释掉下雨特效的移除）
-    // if (window.pokemonAbilities && window.pokemonAbilities.kyogre) {
-    //     window.pokemonAbilities.kyogre.removeRainEffects();
-    // }
+    // 移除所有特效（取消注释下雨特效的移除）
+    if (window.pokemonAbilities && window.pokemonAbilities.kyogre) {
+        window.pokemonAbilities.kyogre.removeRainEffects();
+    }
     
     // 清空所有格子的角落信息
     document.querySelectorAll('.cell-corner-info').forEach(info => {
@@ -2271,7 +2315,7 @@ function setupEventListeners() {
             // AI模式下，重新调用startAIChallenge来开始游戏
             startAIChallenge(aiGameState.currentLevel);
         } else if (onlineState.isOnline) {
-            // 联机模式下，同步选择的棋子
+            // 联机模式下，同步选择的棋子（只在确认时同步）
             syncSelectedPieces();
             // 联机游戏会在双方都准备后自动开始
         } else {
