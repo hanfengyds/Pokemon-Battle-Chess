@@ -167,26 +167,92 @@ function aiTurn() {
         
         // 2. 如果没有可攻击的目标，尝试移动
         if (!actionTaken) {
+            // 找到所有可移动的AI棋子并评估最佳移动
+            const moveEvaluations = [];
+            
+            // 记录已经移动过的棋子，避免重复移动同一个棋子
+            const movedPieces = new Set();
+            
             for (const aiPiece of aiGameState.aiPieces) {
-                if (aiPiece.currentHp <= 0) continue;
+                if (aiPiece.currentHp <= 0 || movedPieces.has(aiPiece.id)) continue;
                 
                 const { moves } = calculateAvailableMovesAndAttacks(aiPiece);
                 if (moves.length > 0) {
-                    // 选择离玩家最近的移动位置
-                    const playerPieces = gameState.pieces.filter(p => p.player === 'blue');
-                    if (playerPieces.length > 0) {
-                        const closestMove = moves.reduce((best, move) => {
-                            const bestDist = Math.abs(best.x - playerPieces[0].x) + Math.abs(best.y - playerPieces[0].y);
-                            const moveDist = Math.abs(move.x - playerPieces[0].x) + Math.abs(move.y - playerPieces[0].y);
-                            return moveDist < bestDist ? move : best;
-                        }, moves[0]);
+                    // 评估每个移动位置的得分
+                    for (const move of moves) {
+                        let score = 0;
                         
-                        // 执行移动 - 使用专门的AI移动函数
-                        executeAIMove(aiPiece, closestMove);
-                        actionTaken = true;
-                        break;
+                        // 计算到最近敌人的距离（负分，距离越近越好）
+                        const playerPieces = gameState.pieces.filter(p => p.player === 'blue');
+                        if (playerPieces.length > 0) {
+                            const minDistance = Math.min(...playerPieces.map(p => 
+                                Math.abs(move.x - p.x) + Math.abs(move.y - p.y)
+                            ));
+                            score -= minDistance * 2; // 距离越近得分越高
+                        }
+                        
+                        // 如果是水系精灵，检查是否在盖欧卡降雨范围内
+                        if (aiPiece.type === 'water' && window.pokemonAbilities && window.pokemonAbilities.kyogre) {
+                            const kyogrePieces = gameState.pieces.filter(p => 
+                                p.player === 'red' && p.id && p.id.includes('kyogre') && p.currentHp > 0
+                            );
+                            
+                            for (const kyogre of kyogrePieces) {
+                                const distanceX = Math.abs(move.x - kyogre.x);
+                                const distanceY = Math.abs(move.y - kyogre.y);
+                                if (distanceX <= 1 && distanceY <= 1) {
+                                    score += 15; // 增加水系精灵在降雨范围内的权重
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // 计算潜在伤害（基于移动后能攻击的目标），考虑类型克制
+                        const tempPiece = {...aiPiece, x: move.x, y: move.y};
+                        const { attackable: potentialTargets } = calculateAvailableMovesAndAttacks(tempPiece);
+                        if (potentialTargets.length > 0) {
+                            const maxDamage = Math.max(...potentialTargets.map(target => 
+                                calculateDamage(tempPiece, target)
+                            ));
+                            score += maxDamage * 4; // 增加潜在伤害的权重
+                            
+                            // 额外加分：如果移动后能攻击到被克制的目标
+                            const typeAdvantageTargets = potentialTargets.filter(target => {
+                                const damage = calculateDamage(tempPiece, target);
+                                return damage > tempPiece.attack; // 伤害高于基础攻击力表示有克制
+                            });
+                            
+                            if (typeAdvantageTargets.length > 0) {
+                                score += 20; // 类型克制额外加分
+                            }
+                        }
+                        
+                        // 如果是盖欧卡，降低移动优先级，让其他水系精灵先移动
+                        if (aiPiece.id && aiPiece.id.includes('kyogre')) {
+                            score -= 5; // 降低盖欧卡移动优先级
+                        }
+                        
+                        moveEvaluations.push({
+                            piece: aiPiece,
+                            move: move,
+                            score: score
+                        });
                     }
                 }
+            }
+            
+            // 选择得分最高的移动
+            if (moveEvaluations.length > 0) {
+                const bestMove = moveEvaluations.reduce((best, eval) => 
+                    eval.score > best.score ? eval : best
+                );
+                
+                // 记录已经移动的棋子
+                movedPieces.add(bestMove.piece.id);
+                
+                // 执行移动
+                executeAIMove(bestMove.piece, bestMove.move);
+                actionTaken = true;
             }
         }
         
@@ -297,7 +363,21 @@ function resetGameForAI() {
         info.innerHTML = '';
     });
     
+    // 新增：清除盖欧卡下雨特效
+    if (window.pokemonAbilities && window.pokemonAbilities.kyogre && window.pokemonAbilities.kyogre.removeRainEffects) {
+        window.pokemonAbilities.kyogre.removeRainEffects();
+    }
+    
+    // 新增：重新初始化河流效果
+    if (typeof initRiverCanvas === 'function') {
+        initRiverCanvas();
+    }
     updateMoveCounter();
+    
+    // 注意：不要重置aiGameState.isAIMode和aiGameState.currentLevel
+    // 这样FlowingRiver构造函数就能正确识别第二关状态
+    // 只重置aiTurn状态
+    aiGameState.aiTurn = false;
 }
 
 // 初始化时启动AI对战功能
