@@ -585,9 +585,16 @@ class FlowingRiver {
         
         // 计算河流位置和大小
         const cellHeight = riverCanvas.height / gameState.boardSize.y;
-        // y=5和y=6的格子是河流
-        this.riverY = (gameState.boardSize.y - 1 - 6) * cellHeight; // 上河岸
-        this.riverHeight = cellHeight * 2; // 两条河流格子的高度
+        
+        // 如果是第二关，河流扩展到y=4和y=7行
+        if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 2) {
+            this.riverY = (gameState.boardSize.y - 1 - 7) * cellHeight; // 上河岸从y=7开始
+            this.riverHeight = cellHeight * 4; // 四条河流格子的高度
+        } else {
+            // y=5和y=6的格子是河流
+            this.riverY = (gameState.boardSize.y - 1 - 6) * cellHeight; // 上河岸
+            this.riverHeight = cellHeight * 2; // 两条河流格子的高度
+        }
         
         this.initParticles();
     }
@@ -755,8 +762,15 @@ class FlowingRiver {
         
         // 重新计算河流位置
         const cellHeight = height / gameState.boardSize.y;
-        this.riverY = (gameState.boardSize.y - 1 - 6) * cellHeight;
-        this.riverHeight = cellHeight * 2;
+        
+        // 如果是第二关，河流扩展到y=4和y=7行
+        if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 2) {
+            this.riverY = (gameState.boardSize.y - 1 - 7) * cellHeight;
+            this.riverHeight = cellHeight * 4;
+        } else {
+            this.riverY = (gameState.boardSize.y - 1 - 6) * cellHeight;
+            this.riverHeight = cellHeight * 2;
+        }
         
         // 重新初始化粒子
         this.particles = [];
@@ -820,7 +834,7 @@ function updateFilteredPokemon() {
         .map(btn => btn.dataset.type);
     
     // 获取排序方式
-    const sortMethod = document.querySelector('#sort-hp, #sort-atk, #sort-move.bg-primary')?.id;
+    const sortMethod = document.querySelector('#sort-hp.bg-primary, #sort-atk.bg-primary, #sort-move.bg-primary')?.id;
     
     // 筛选宝可梦
     let filteredPokemon = pokemonData;
@@ -845,6 +859,9 @@ function updateFilteredPokemon() {
         const card = document.createElement('div');
         card.classList.add('card', 'bg-gray-900', 'rounded-lg', 'overflow-hidden', 'shadow-lg', 'cursor-pointer');
         card.dataset.id = pokemon.id;
+        
+        // 应用边框样式
+        applyBorderToPokemonCard(card, pokemon.id);
         
         card.innerHTML = `
                     <div class="relative">
@@ -878,6 +895,10 @@ function updateFilteredPokemon() {
                                 <span class="text-green-400">${pokemon.move}</span>
                             </div>
                         </div>
+                        ${getPokemonDescription(pokemon.id) ? 
+                            `<div class="mt-2 p-2 bg-purple-900/50 rounded text-xs text-purple-200 border border-purple-700">
+                                <i class="fa fa-info-circle mr-1"></i>${getPokemonDescription(pokemon.id)}
+                            </div>` : ''}
                     </div>
                 `;
         
@@ -921,6 +942,20 @@ function createPokemonPack() {
         document.getElementById('sort-hp').classList.remove('bg-primary');
         document.getElementById('sort-atk').classList.remove('bg-primary');
         updateFilteredPokemon();
+    });
+    
+    // 添加属性筛选按钮折叠效果
+    const propertyFilterBtn = document.getElementById('property-filter-btn');
+    const typeFilterButtons = document.getElementById('type-filter-buttons');
+    const chevronIcon = propertyFilterBtn.querySelector('.fa-chevron-down');
+    
+    propertyFilterBtn.addEventListener('click', function() {
+        typeFilterButtons.classList.toggle('max-h-0');
+        typeFilterButtons.classList.toggle('max-h-32');
+        typeFilterButtons.classList.toggle('opacity-0');
+        typeFilterButtons.classList.toggle('opacity-100');
+        chevronIcon.classList.toggle('fa-chevron-down');
+        chevronIcon.classList.toggle('fa-chevron-up');
     });
     
     // 添加重置筛选按钮事件监听
@@ -1066,10 +1101,10 @@ function renderPieces() {
     // 移除所有血量条
     document.querySelectorAll('.vertical-health-container').forEach(healthBar => healthBar.remove());
     
-    // 移除所有特效
-    if (window.pokemonAbilities && window.pokemonAbilities.kyogre) {
-        window.pokemonAbilities.kyogre.removeRainEffects();
-    }
+    // 移除所有特效（注释掉下雨特效的移除）
+    // if (window.pokemonAbilities && window.pokemonAbilities.kyogre) {
+    //     window.pokemonAbilities.kyogre.removeRainEffects();
+    // }
     
     // 清空所有格子的角落信息
     document.querySelectorAll('.cell-corner-info').forEach(info => {
@@ -1088,11 +1123,18 @@ function renderPieces() {
     
     // 渲染每个棋子
     gameState.pieces.forEach(piece => {
-        // 为盖欧卡添加下雨特效
+        // 为盖欧卡添加下雨特效（只在特效不存在时创建）
         if (window.pokemonAbilities && window.pokemonAbilities.kyogre) {
-            const rainEffect = window.pokemonAbilities.kyogre.createRainEffect(piece, cellWidth, cellHeight);
-            if (rainEffect) {
-                gameBoard.appendChild(rainEffect);
+            const existingRainEffect = document.querySelector('.rain-effect[data-piece-id="' + piece.id + '"]');
+            if (!existingRainEffect) {
+                const rainEffect = window.pokemonAbilities.kyogre.createRainEffect(piece, cellWidth, cellHeight);
+                if (rainEffect) {
+                    rainEffect.setAttribute('data-piece-id', piece.id);
+                    gameBoard.appendChild(rainEffect);
+                }
+            } else {
+                // 更新现有特效的位置
+                window.pokemonAbilities.kyogre.updateRainEffectPosition(piece, cellWidth, cellHeight);
             }
         }
         const pieceEl = document.createElement('div');
@@ -1106,6 +1148,11 @@ function renderPieces() {
         // 检查是否为恶食大王且已经吞噬过友军
         if (piece.name === '恶食大王' && gameState.devouredPieces.length > 0) {
             // 放大2倍
+            finalPieceSize = pieceSize * 1.75;
+        }
+        
+        // 检查是否为盖欧卡，放大1.75倍
+        if (piece.id && piece.id.includes('kyogre')) {
             finalPieceSize = pieceSize * 1.75;
         }
         
@@ -1199,6 +1246,16 @@ function renderPieces() {
     
     // 确保红蓝色边框始终显示
     updatePieceBorders();
+    
+    // 更新盖欧卡降雨范围内的水系宝可梦攻击力显示
+    if (window.pokemonAbilities && window.pokemonAbilities.kyogre) {
+        window.pokemonAbilities.kyogre.updateAttackDisplay();
+    }
+    
+    // 更新原始盖欧卡全棋盘特效和攻击力显示
+    if (window.primalKyogreEffects) {
+        window.primalKyogreEffects.updateEffects();
+    }
 }
 
 // 专门用于更新棋子边框的函数
@@ -1448,6 +1505,10 @@ function calculateAvailableMovesAndAttacks(piece) {
 
 // 检查是否在河流行
 function isInRiver(y) {
+    // 如果是第二关，河流扩展到y=4和y=7行
+    if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 2) {
+        return y === 4 || y === 5 || y === 6 || y === 7;
+    }
     return y === 5 || y === 6;
 }
 
@@ -1642,6 +1703,9 @@ function handleAttack(targetId) {
             return;
         }
         
+        // 显示吞噬文本提示
+        showDevourPopup(target.x, target.y);
+        
         // 处理吞噬友军攻击
         if (pokemonAbilities.guzzlord.handleDevourAttack(attacker, targetId)) {
             return; // 吞噬攻击已处理，直接返回
@@ -1803,9 +1867,64 @@ function showSwapPopup(x, y) {
     }, 1000);
 }
 
+// 显示吞噬提示弹窗
+function showDevourPopup(x, y) {
+    const popup = document.createElement('div');
+    popup.classList.add('devour-popup');
+    popup.textContent = '吞噬';
+    
+    const boardWidth = gameBoard.clientWidth;
+    const boardHeight = gameBoard.clientHeight;
+    const cellWidth = boardWidth / gameState.boardSize.x;
+    const cellHeight = boardHeight / gameState.boardSize.y;
+    
+    const left = x * cellWidth + cellWidth / 2;
+    const top = (gameState.boardSize.y - 1 - y) * cellHeight + cellHeight / 4;
+    
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+    popup.style.transform = 'translate(-50%, 0)';
+    
+    gameBoard.appendChild(popup);
+    
+    setTimeout(() => {
+        popup.remove();
+    }, 1000);
+}
+
 // 计算伤害 - 双属性伤害最大化版本
 function calculateDamage(attacker, target) {
     let baseDamage = attacker.atk;
+    
+    // 检查是否在盖欧卡降雨范围内，如果是水系宝可梦则攻击力+1
+    if (window.pokemonAbilities && window.pokemonAbilities.kyogre) {
+        const kyogrePieces = gameState.pieces.filter(piece => 
+            window.pokemonAbilities.kyogre.isKyogre(piece) && piece.currentHp > 0
+        );
+        
+        for (const kyogre of kyogrePieces) {
+            // 如果是盖欧卡自身，始终获得攻击力加成
+            if (window.pokemonAbilities.kyogre.isKyogre(attacker)) {
+                baseDamage += 1; // 盖欧卡自身攻击力+1
+                break;
+            }
+            // 如果是其他水系宝可梦且在降雨范围内，攻击力+1
+            else if (window.pokemonAbilities.kyogre.isWaterType(attacker) && 
+                    window.pokemonAbilities.kyogre.isInRainRange(kyogre, attacker)) {
+                baseDamage += 1; // 攻击力+1
+                break;
+            }
+        }
+    }
+
+    // 检查原始盖欧卡的全棋盘攻击力加成
+    if (window.primalKyogreEffects) {
+        const primalWaterPokemon = window.primalKyogreEffects.getWaterPokemonInFullBoardRange();
+        const primalBoost = primalWaterPokemon.find(item => item.piece.id === attacker.id);
+        if (primalBoost) {
+            baseDamage += 1; // 原始盖欧卡全棋盘攻击力+1
+        }
+    }
     
     // 处理攻击方和目标方的双属性
     const attackerTypes = Array.isArray(attacker.type) ? attacker.type : [attacker.type];
@@ -2037,6 +2156,21 @@ function resetGame() {
     info.innerHTML = '';
   });
   
+  // 新增：清除盖欧卡下雨特效
+  if (window.pokemonAbilities && window.pokemonAbilities.kyogre && window.pokemonAbilities.kyogre.removeRainEffects) {
+    window.pokemonAbilities.kyogre.removeRainEffects();
+  }
+  
+  // 新增：清除原始盖欧卡全棋盘下雨特效
+  if (window.primalKyogreEffects && window.primalKyogreEffects.removeEffects) {
+    window.primalKyogreEffects.removeEffects();
+  }
+  
+  // 新增：重新初始化河流效果
+  if (typeof initRiverCanvas === 'function') {
+    initRiverCanvas();
+  }
+  
   updateMoveCounter();
   
   // 重置投票状态
@@ -2085,6 +2219,21 @@ function performActualReset() {
   document.querySelectorAll('.cell-corner-info').forEach(info => {
     info.innerHTML = '';
   });
+  
+  // 新增：清除盖欧卡下雨特效
+  if (window.pokemonAbilities && window.pokemonAbilities.kyogre && window.pokemonAbilities.kyogre.removeRainEffects) {
+    window.pokemonAbilities.kyogre.removeRainEffects();
+  }
+  
+  // 新增：清除原始盖欧卡全棋盘下雨特效
+  if (window.primalKyogreEffects && window.primalKyogreEffects.removeEffects) {
+    window.primalKyogreEffects.removeEffects();
+  }
+  
+  // 新增：重新初始化河流效果
+  if (typeof initRiverCanvas === 'function') {
+    initRiverCanvas();
+  }
   
   updateMoveCounter();
   
