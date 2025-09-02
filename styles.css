@@ -282,7 +282,7 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background-color: red;
+    background-color: #3b82f6; /* 将红色改为蓝色 */
     z-index: 20;
 }
 
@@ -332,9 +332,15 @@
     position: absolute;
     width: 16px;
     height: 16px;
-    background-color: #F44336;
+    background-color: #3b82f6; /* 将#F44336红色改为#3b82f6蓝色 */
     border-radius: 50%;
     z-index: 10;
+}
+
+/* 盖欧卡降雨特效 - 蓝色底部填充 */
+.attack-circle.rain-boosted {
+    background: linear-gradient(to top, #3b82f6 3px, #F44336 3px);
+    box-shadow: 0 0 3px rgba(59, 130, 246, 0.7);
 }
 
 /* 联机功能样式 */
@@ -809,4 +815,114 @@
     width: 1.5px;
     height: 30px;
     animation-duration: 1.1s;
+}
+
+/* 吞噬提示动画 */
+@keyframes devour-popup {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-20px); }
+}
+
+.devour-popup {
+    position: absolute;
+    color: #f1bd00; /* 紫色文字 */
+    font-weight: bold;
+    pointer-events: none;
+    animation: devour-popup 1s ease forwards;
+    z-index: 30;
+    font-size: 18px;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+}
+
+/* 原始盖欧卡全棋盘下雨特效 */
+.primal-kyogre-full-rain {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 7;
+    overflow: hidden;
+    border: 3px solid rgba(0, 100, 255, 0.5);
+    border-radius: 12px;
+    box-shadow: 0 0 25px rgba(0, 150, 255, 0.6);
+}
+
+.primal-rain-drop {
+    position: absolute;
+    width: 1.2px;
+    height: 35px;
+    background: linear-gradient(to bottom, 
+        rgba(0, 200, 255, 0.9) 0%, 
+        rgba(0, 100, 255, 0.7) 30%, 
+        rgba(0, 50, 200, 0.5) 70%, 
+        rgba(0, 100, 255, 0.3) 100%);
+    border-radius: 0.6px;
+    box-shadow: 0 0 5px rgba(0, 200, 255, 0.8);
+    animation: primal-rain-fall 1.2s linear infinite;
+    transform: rotate(-12deg) skewX(-4deg);
+}
+
+@keyframes primal-rain-fall {
+    0% {
+        transform: translateY(-100px) rotate(-12deg) skewX(-4deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.9;
+    }
+    90% {
+        opacity: 0.8;
+    }
+    100% {
+        transform: translateY(640px) rotate(-12deg) skewX(-4deg);
+        opacity: 0;
+    }
+}
+
+/* 增加雨滴变化效果 */
+.primal-rain-drop:nth-child(odd) {
+    width: 1px;
+    height: 30px;
+    animation-duration: 1s;
+    transform: rotate(-15deg) skewX(-6deg);
+}
+
+.primal-rain-drop:nth-child(even) {
+    width: 1.4px;
+    height: 40px;
+    animation-duration: 1.4s;
+    transform: rotate(-10deg) skewX(-2deg);
+}
+
+.primal-rain-drop:nth-child(3n) {
+    width: 0.8px;
+    height: 25px;
+    animation-duration: 0.9s;
+    transform: rotate(-18deg) skewX(-8deg);
+}
+
+.primal-rain-drop:nth-child(5n) {
+    width: 1.6px;
+    height: 45px;
+    animation-duration: 1.6s;
+    transform: rotate(-8deg) skewX(-1deg);
+}
+
+.primal-rain-drop:nth-child(7n) {
+    background: linear-gradient(to bottom, 
+        rgba(100, 200, 255, 0.9) 0%, 
+        rgba(50, 150, 255, 0.7) 30%, 
+        rgba(0, 100, 220, 0.5) 70%, 
+        rgba(50, 150, 255, 0.3) 100%);
+}
+
+.primal-rain-drop:nth-child(11n) {
+    background: linear-gradient(to bottom, 
+        rgba(0, 150, 255, 0.9) 0%, 
+        rgba(0, 80, 220, 0.7) 30%, 
+        rgba(0, 50, 180, 0.5) 70%, 
+        rgba(0, 80, 220, 0.3) 100%);
+    box-shadow: 0 0 6px rgba(0, 180, 255, 0.9);
 }
