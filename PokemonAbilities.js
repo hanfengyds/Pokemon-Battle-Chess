@@ -4,7 +4,50 @@ const pokemonAbilities = {
     kyogre: {
         // 检查是否为盖欧卡
         isKyogre: function(piece) {
-            return piece && piece.id && piece.id.includes('kyogre');
+            return piece && piece.id && piece.id.includes('kyogre') && !piece.id.includes('kyogre-primal');
+        },
+        
+        // 检查是否为水系宝可梦
+        isWaterType: function(piece) {
+            if (!piece || !piece.type) return false;
+            
+            // 处理单属性和双属性
+            if (Array.isArray(piece.type)) {
+                return piece.type.includes('water');
+            } else {
+                return piece.type === 'water';
+            }
+        },
+        
+        // 检查宝可梦是否在盖欧卡的降雨范围内
+        isInRainRange: function(kyogrePiece, targetPiece) {
+            if (!this.isKyogre(kyogrePiece) || !targetPiece) return false;
+            
+            // 计算曼哈顿距离（1格范围内）
+            const distanceX = Math.abs(kyogrePiece.x - targetPiece.x);
+            const distanceY = Math.abs(kyogrePiece.y - targetPiece.y);
+            
+            return distanceX <= 1 && distanceY <= 1;
+        },
+        
+        // 获取降雨范围内的水系宝可梦
+        getWaterPokemonInRainRange: function() {
+            const kyogrePieces = gameState.pieces.filter(piece => this.isKyogre(piece) && piece.currentHp > 0);
+            const affectedPieces = [];
+            
+            kyogrePieces.forEach(kyogrePiece => {
+                gameState.pieces.forEach(piece => {
+                    if (this.isWaterType(piece) && this.isInRainRange(kyogrePiece, piece)) {
+                        affectedPieces.push({
+                            piece: piece,
+                            kyogre: kyogrePiece,
+                            boostedAtk: piece.atk + 1 // 攻击力+1
+                        });
+                    }
+                });
+            });
+            
+            return affectedPieces;
         },
         
         // 创建下雨特效
@@ -42,6 +85,52 @@ const pokemonAbilities = {
         // 移除下雨特效
         removeRainEffects: function() {
             document.querySelectorAll('.rain-effect').forEach(effect => effect.remove());
+        },
+        
+        // 更新下雨特效位置
+        updateRainEffectPosition: function(piece, cellWidth, cellHeight) {
+            if (!this.isKyogre(piece) || piece.currentHp <= 0) return;
+            
+            const boardWidth = gameBoard.clientWidth;
+            const boardHeight = gameBoard.clientHeight;
+            
+            // 计算新的特效位置
+            const effectLeft = Math.max(0, (piece.x - 1) * cellWidth);
+            const effectTop = Math.max(0, (gameState.boardSize.y - 1 - (piece.y + 1)) * cellHeight);
+            const effectWidth = Math.min(boardWidth, (3 * cellWidth));
+            const effectHeight = Math.min(boardHeight, (3 * cellHeight));
+            
+            // 找到对应的特效并更新位置
+            const rainEffect = document.querySelector('.rain-effect[data-piece-id="' + piece.id + '"]');
+            if (rainEffect) {
+                rainEffect.style.left = `${effectLeft}px`;
+                rainEffect.style.top = `${effectTop}px`;
+                rainEffect.style.width = `${effectWidth}px`;
+                rainEffect.style.height = `${effectHeight}px`;
+            }
+        },
+        
+        // 更新攻击力显示（在renderPieces中调用）
+        updateAttackDisplay: function() {
+            const waterPokemon = this.getWaterPokemonInRainRange();
+            
+            // 重置所有攻击力圆圈为红色
+            document.querySelectorAll('.attack-circle').forEach(circle => {
+                circle.style.backgroundColor = '#F44336'; // 红色
+            });
+            
+            // 为受影响的宝可梦更新显示
+            waterPokemon.forEach(({piece, boostedAtk}) => {
+                const cornerInfo = document.querySelector(`.cell-corner-info[data-x="${piece.x}"][data-y="${piece.y}"]`);
+                if (cornerInfo) {
+                    const attackValueEl = cornerInfo.querySelector('.attack-value');
+                    const attackCircleEl = cornerInfo.querySelector('.attack-circle');
+                    if (attackValueEl && attackCircleEl) {
+                        attackValueEl.textContent = boostedAtk;
+                        attackCircleEl.style.backgroundColor = '#3b82f6'; // 蓝色
+                    }
+                }
+            });
         }
     },
     
@@ -138,6 +227,126 @@ function initPokemonAbilities() {
     console.log('精灵特性模块已加载');
 }
 
+// 原始盖欧卡独立特效模块
+const primalKyogreEffects = {
+    // 检查是否为原始盖欧卡
+    isPrimalKyogre: function(piece) {
+        return piece && piece.id && piece.id.includes('kyogre-primal');
+    },
+    
+    // 检查是否为水系宝可梦（复用普通盖欧卡的逻辑）
+    isWaterType: function(piece) {
+        if (!piece || !piece.type) return false;
+        
+        // 处理单属性和双属性
+        if (Array.isArray(piece.type)) {
+            return piece.type.includes('water');
+        } else {
+            return piece.type === 'water';
+        }
+    },
+    
+    // 获取全棋盘范围内的水系宝可梦（所有水系宝可梦都受影响）
+    getWaterPokemonInFullBoardRange: function() {
+        const primalKyogrePieces = gameState.pieces.filter(piece => this.isPrimalKyogre(piece) && piece.currentHp > 0);
+        const affectedPieces = [];
+        
+        // 如果有原始盖欧卡在场，所有水系宝可梦都获得攻击力加成
+        if (primalKyogrePieces.length > 0) {
+            gameState.pieces.forEach(piece => {
+                if (this.isWaterType(piece) && piece.currentHp > 0) {
+                    affectedPieces.push({
+                        piece: piece,
+                        kyogre: primalKyogrePieces[0], // 使用第一个原始盖欧卡作为来源
+                        boostedAtk: piece.atk + 1 // 攻击力+1
+                    });
+                }
+            });
+        }
+        
+        return affectedPieces;
+    },
+    
+    // 更新攻击力显示（全棋盘范围）
+    updateAttackDisplay: function() {
+        const waterPokemon = this.getWaterPokemonInFullBoardRange();
+        
+        // 为受影响的宝可梦更新显示
+        waterPokemon.forEach(({piece, boostedAtk}) => {
+            const cornerInfo = document.querySelector(`.cell-corner-info[data-x="${piece.x}"][data-y="${piece.y}"]`);
+            if (cornerInfo) {
+                const attackValueEl = cornerInfo.querySelector('.attack-value');
+                const attackCircleEl = cornerInfo.querySelector('.attack-circle');
+                if (attackValueEl && attackCircleEl) {
+                    attackValueEl.textContent = boostedAtk;
+                    attackCircleEl.style.backgroundColor = '#3b82f6'; // 蓝色
+                }
+            }
+        });
+    },
+    
+    // 创建全棋盘下雨特效
+    createFullBoardRainEffect: function() {
+        if (!this.hasPrimalKyogre()) return null;
+        
+        const rainEffect = document.createElement('div');
+        rainEffect.className = 'primal-kyogre-full-rain';
+        rainEffect.style.position = 'absolute';
+        rainEffect.style.top = '0';
+        rainEffect.style.left = '0';
+        rainEffect.style.width = '100%';
+        rainEffect.style.height = '100%';
+        rainEffect.style.pointerEvents = 'none';
+        rainEffect.style.zIndex = '7';
+        rainEffect.style.overflow = 'hidden';
+        
+        // 创建500个雨滴覆盖整个棋盘
+        for (let i = 0; i < 500; i++) {
+            const rainDrop = document.createElement('div');
+            rainDrop.className = 'primal-rain-drop';
+            rainDrop.style.left = `${Math.random() * 100}%`;
+            rainDrop.style.animationDelay = `${Math.random() * 2}s`;
+            rainEffect.appendChild(rainDrop);
+        }
+        
+        return rainEffect;
+    },
+    
+    // 检查棋盘上是否有原始盖欧卡
+    hasPrimalKyogre: function() {
+        return gameState.pieces.some(piece => this.isPrimalKyogre(piece) && piece.currentHp > 0);
+    },
+    
+    // 移除特效
+    removeEffects: function() {
+        document.querySelectorAll('.primal-kyogre-full-rain').forEach(effect => effect.remove());
+    },
+    
+    // 更新特效状态
+    updateEffects: function() {
+        // 不再移除特效，只更新攻击力显示
+        // this.removeEffects();
+        
+        // 检查是否需要创建特效（如果特效不存在且原始盖欧卡在场）
+        if (this.hasPrimalKyogre()) {
+            const existingEffect = document.querySelector('.primal-kyogre-full-rain');
+            if (!existingEffect) {
+                const effect = this.createFullBoardRainEffect();
+                if (effect) {
+                    gameBoard.appendChild(effect);
+                }
+            }
+        } else {
+            // 如果没有原始盖欧卡在场，移除特效
+            this.removeEffects();
+        }
+        
+        // 更新攻击力显示
+        this.updateAttackDisplay();
+    }
+};
+
 // 导出到全局作用域
+window.primalKyogreEffects = primalKyogreEffects;
 window.pokemonAbilities = pokemonAbilities;
 window.initPokemonAbilities = initPokemonAbilities;
