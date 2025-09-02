@@ -64,12 +64,12 @@
         <div class="flex items-center space-x-3">
             <!-- 修改：将Logo图片路径改为本地background/logo.png -->
             <img src="background/logo.png" alt="宝可梦象棋Logo" class="w-10 h-10 rounded-full">
-            <h1 class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Pokemon Battle Chess （宝可战棋）</h1>
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">宝可梦战棋（ Pokemon Battle Chess ） </h1>
         </div>
         
         <div class="flex items-center space-x-4">
             <button id="open-pack-btn" class="bg-primary hover:bg-primary/80 text-white py-2 px-4 rounded-lg flex items-center transition-all duration-300">
-                <i class="fa fa-box mr-2"></i> 打开棋包
+                <i class="fa fa-gamepad mr-2"></i> 战棋棋包
             </button>
             <button id="reset-game-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg flex items-center transition-all duration-300">
                 <i class="fa fa-refresh mr-2"></i> 重置游戏
@@ -136,7 +136,7 @@
     <div id="pack-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-5xl max-h-[80vh] overflow-hidden flex flex-col">
             <div class="p-4 border-b border-gray-700 flex justify-between items-center">
-                <h2 class="text-2xl font-bold">宝可梦棋包</h2>
+                <h2 class="text-2xl font-bold">宝可梦战棋棋包</h2>
                 <button id="close-pack-btn" class="text-gray-400 hover:text-white text-2xl transition-colors">
                     <i class="fa fa-times"></i>
                 </button>
@@ -157,13 +157,17 @@
                         <button id="sort-move" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors">
                             按距离排序
                         </button>
+                        <button id="property-filter-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors flex items-center">
+                            <i class="fa fa-filter mr-1"></i> 按属性筛选
+                            <i class="fa fa-chevron-down ml-1 text-xs"></i>
+                        </button>
                         <button id="reset-filter" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors ml-auto">
                             重置筛选
                         </button>
                     </div>
                     
-                    <!-- 属性筛选按钮组 -->
-                    <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto" id="type-filter-buttons">
+                    <!-- 属性筛选按钮组（默认隐藏） -->
+                    <div id="type-filter-buttons" class="flex flex-wrap gap-2 max-h-0 overflow-y-auto transition-all duration-300 opacity-0">
                         <!-- 属性按钮将通过JavaScript动态生成 -->
                     </div>
                 </div>
@@ -293,6 +297,7 @@
     </div>
     
     <script src="game.js"></script>
+    <script src="pokemon-cost.js"></script>
     <script src="AIChessSet.js"></script>
     <script src="AIGame.js"></script>
     <script src="PokemonAbilities.js"></script>
