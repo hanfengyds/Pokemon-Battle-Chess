@@ -8,7 +8,7 @@
             move: 3,
             type: 'flying',
             typeName: '飞行',
-            image: '棋子（正面）/龙卷云.gif'
+            image: 'player-pokemon/龙卷云.gif'
         },
         {
             id: 'arcanine',
@@ -18,7 +18,7 @@
             move: 2,
             type: 'fire',
             typeName: '火',
-            image: '棋子（正面）/风速狗.gif'
+            image: 'player-pokemon/风速狗.gif'
         },
         {
             id: 'jolteon',
@@ -28,7 +28,7 @@
             move: 3,
             type: 'electric',
             typeName: '电',
-            image: '棋子（正面）/雷伊布.gif'
+            image: 'player-pokemon/雷伊布.gif'
         },
         {
             id: 'tangrowth',
@@ -38,7 +38,7 @@
             move: 2,
             type: 'grass',
             typeName: '草',
-            image: '棋子（正面）/巨蔓藤.gif'
+            image: 'player-pokemon/巨蔓藤.gif'
         },
         {
             id: 'blastoise',
@@ -48,7 +48,7 @@
             move: 2,
             type: 'water',
             typeName: '水',
-            image: '棋子（正面）/水箭龟.gif'
+            image: 'player-pokemon/水箭龟.gif'
         },
         { 
             id: 'sandshrew',
@@ -58,7 +58,7 @@
             move: 2,
             type: 'ground',
             typeName: '地面',
-            image: '棋子（正面）/穿山王.gif'
+            image: 'player-pokemon/穿山王.gif'
         },
         {
             id: 'accelgor',
@@ -68,7 +68,7 @@
             move: 4,
             type: 'bug',
             typeName: '虫',
-            image: '棋子（正面）/敏捷虫.gif'
+            image: 'player-pokemon/敏捷虫.gif'
         },
         {
             id: 'suicune',
@@ -78,7 +78,7 @@
             move: 2,
             type: 'water',
             typeName: '水',
-            image: '棋子（正面）/水君.gif'
+            image: 'player-pokemon/水君.gif'
         },
         {
             id: 'chansey',
@@ -88,7 +88,7 @@
             move: 1,
             type: 'normal',
             typeName: '一般',
-            image: '棋子（正面）/吉利蛋.gif'
+            image: 'player-pokemon/吉利蛋.gif'
         },
         {
             id: 'weezing',
@@ -98,7 +98,7 @@
             move: 2,
             type: 'poison',
             typeName: '毒',
-            image: '棋子（正面）/双弹瓦斯.gif'
+            image: 'player-pokemon/双弹瓦斯.gif'
         },
         {
             id: 'alakazam',
@@ -108,7 +108,7 @@
             move: 3,
             type: 'psychic',
             typeName: '超能',
-            image: '棋子（正面）/胡地.gif'
+            image: 'player-pokemon/胡地.gif'
         },
                 {
             id: 'absol',
@@ -118,7 +118,7 @@
             move: 2,
             type: 'dark',
             typeName: '恶',
-            image: '棋子（正面）/阿勃梭鲁.gif'
+            image: 'player-pokemon/阿勃梭鲁.gif'
         },
                         {
             id: 'machamp',
@@ -128,7 +128,7 @@
             move: 2,
             type: 'fighting',
             typeName: '格斗',
-            image: '棋子（正面）/怪力.gif'
+            image: 'player-pokemon/怪力.gif'
         },
                                 {
             id: 'haxorus',
@@ -138,7 +138,7 @@
             move: 2,
             type: 'dragon',
             typeName: '龙',
-            image: '棋子（正面）/双斧战龙.gif'
+            image: 'player-pokemon/双斧战龙.gif'
         },
                                 {
             id: 'venusaur',
@@ -148,7 +148,7 @@
             move: 2,
             type: ['grass','poison'],
             typeName: ['草','毒'],
-            image: '棋子（正面）/妙蛙花.gif'
+            image: 'player-pokemon/妙蛙花.gif'
         },
                                         {
             id: 'steelix',
@@ -158,17 +158,17 @@
             move: 2,
             type: ['steel','ground'],
             typeName: ['铁','地面'],
-            image: '棋子（正面）/大钢蛇.gif'
+            image: 'player-pokemon/大钢蛇.gif'
         },
                                                {
-            id: 'guzzlord ',
+            id: 'guzzlord',
             name: '恶食大王',
             hp: 5,
             atk: 2,
             move: 2,
             type: ['dark','dragon'],
             typeName: ['恶','龙'],
-            image: '棋子（正面）/恶食大王.gif'
+            image: 'player-pokemon/恶食大王.gif'
         },
     ];
 
