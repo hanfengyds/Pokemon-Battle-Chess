@@ -119,7 +119,17 @@ function startAIChallenge(level) {
     // 隐藏联机按钮，显示AI模式提示
     document.getElementById('online-btn').style.display = 'none';
     
+    // 修改前：
     addMessage(`开始${levelConfig.name}！你是蓝色方，对战AI控制的红色方`);
+    
+    // 修改后：
+    if (level === 1) {
+        addMessage(`<span style="color:rgb(85, 187, 255);">欢迎挑战第一关 「源始的海洋」！你将面临那片神秘而暗藏杀机的海洋，做好准备吧！</span>`);
+    } else if (level === 2) {
+        addMessage(`<span style="color:rgb(85, 187, 255);">你居然来到了第二关 「狂怒的海洋」！那个家伙似乎生气了，现在整个世界全部在下暴雨，赶快阻止它！！</span>`);
+    } else {
+        addMessage(`开始${levelConfig.name}！你是蓝色方，对战AI控制的红色方`);
+    }
     addMessage(`AI拥有 ${levelConfig.aiPieces.length} 个宝可梦棋子`);
     
     renderPieces();
@@ -208,7 +218,7 @@ function aiTurn() {
                         }
                         
                         // 计算潜在伤害（基于移动后能攻击的目标），考虑类型克制
-                        const tempPiece = {...aiPiece, x: move.x, y: move.y};
+                        const tempPiece = {...aiPiece, x: move.x, y: move.y, player: aiPiece.player};
                         const { attackable: potentialTargets } = calculateAvailableMovesAndAttacks(tempPiece);
                         if (potentialTargets.length > 0) {
                             const maxDamage = Math.max(...potentialTargets.map(target => 
@@ -354,6 +364,7 @@ function resetGameForAI() {
     gameState.attackablePieces = [];
     gameState.swappablePieces = [];
     gameState.pieces = [];
+    gameState.devouredPieces = []; // 新增：重置吞噬状态
     
     document.querySelectorAll('.piece').forEach(piece => piece.remove());
     document.querySelectorAll('.vertical-health-container').forEach(healthBar => healthBar.remove());
