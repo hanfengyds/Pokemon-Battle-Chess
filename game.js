@@ -13,6 +13,9 @@ const gameState = {
     devouredPieces: [] // 新增：记录恶食大王已经吞噬过的友军棋子ID
 };
 
+// 确保pokemonData是全局可访问的
+window.pokemonData = pokemonData;
+
 // 在全局作用域添加定时器变量
 let borderUpdateInterval = null;
 
@@ -73,6 +76,7 @@ function init() {
     setupEventListeners();
     initOnline();
     initAIGame(); // 添加这行代码
+    setupRedeemCodeFeature(); // 添加兑换码功能
     addMessage('欢迎来到宝可梦象棋！请先打开棋包选择你的6个宝可梦');
 }
 
@@ -616,21 +620,27 @@ class FlowingRiver {
         this.particles = [];
         this.currentSpeed = 0.8;
         this.gradientOffset = 0;
+        this.isLevel3 = false; // 新增：标记是否为第三关
         
         // 计算河流位置和大小
         const cellHeight = riverCanvas.height / gameState.boardSize.y;
         
-        // 如果是第二关，河流扩展到y=4和y=7行
-        if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 2) {
+        // 检查是否为第三关
+        if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 3) {
+            this.isLevel3 = true; // 第三关不显示河流
+        } else if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 2) {
+            // 第二关河流扩展
             this.riverY = (gameState.boardSize.y - 1 - 7) * cellHeight; // 上河岸从y=7开始
             this.riverHeight = cellHeight * 4; // 四条河流格子的高度
         } else {
-            // y=5和y=6的格子是河流
+            // 默认河流设置
             this.riverY = (gameState.boardSize.y - 1 - 6) * cellHeight; // 上河岸
             this.riverHeight = cellHeight * 2; // 两条河流格子的高度
         }
         
-        this.initParticles();
+        if (!this.isLevel3) {
+            this.initParticles();
+        }
     }
     
     initParticles() {
@@ -680,6 +690,12 @@ class FlowingRiver {
     }
     
     draw() {
+        if (this.isLevel3) {
+            // 第三关不绘制河流
+            riverCtx.clearRect(0, 0, riverCanvas.width, riverCanvas.height);
+            return;
+        }
+        
         const time = Date.now() * 0.001;
         
         // 清除河流区域
@@ -794,21 +810,27 @@ class FlowingRiver {
         riverCanvas.width = width;
         riverCanvas.height = height;
         
-        // 重新计算河流位置
-        const cellHeight = height / gameState.boardSize.y;
-        
-        // 如果是第二关，河流扩展到y=4和y=7行
-        if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 2) {
-            this.riverY = (gameState.boardSize.y - 1 - 7) * cellHeight;
-            this.riverHeight = cellHeight * 4;
+        // 重新检查是否为第三关
+        if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 3) {
+            this.isLevel3 = true;
+            this.particles = [];
         } else {
-            this.riverY = (gameState.boardSize.y - 1 - 6) * cellHeight;
-            this.riverHeight = cellHeight * 2;
+            this.isLevel3 = false;
+            // 重新计算河流位置
+            const cellHeight = height / gameState.boardSize.y;
+            
+            if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 2) {
+                this.riverY = (gameState.boardSize.y - 1 - 7) * cellHeight;
+                this.riverHeight = cellHeight * 4;
+            } else {
+                this.riverY = (gameState.boardSize.y - 1 - 6) * cellHeight;
+                this.riverHeight = cellHeight * 2;
+            }
+            
+            // 重新初始化粒子
+            this.particles = [];
+            this.initParticles();
         }
-        
-        // 重新初始化粒子
-        this.particles = [];
-        this.initParticles();
         
         // 重新启动动画
         this.start();
@@ -930,7 +952,7 @@ function updateFilteredPokemon() {
                             </div>
                         </div>
                         ${getPokemonDescription(pokemon.id) ? 
-                            `<div class="mt-2 p-2 bg-purple-900/50 rounded text-xs text-purple-200 border border-purple-700">
+                            `<div class="mt-2 p-2 ${getPokemonDescriptionStyle(pokemon.id).bg} rounded text-xs ${getPokemonDescriptionStyle(pokemon.id).text} border ${getPokemonDescriptionStyle(pokemon.id).border}">
                                 <i class="fa fa-info-circle mr-1"></i>${getPokemonDescription(pokemon.id)}
                             </div>` : ''}
                     </div>
@@ -1221,6 +1243,25 @@ function renderPieces() {
 
         gameBoard.appendChild(pieceEl);
 
+        // 添加：创建班基拉斯沙尘暴特效和沙地图案背景
+        if (window.pokemonAbilities && window.pokemonAbilities.tyranitar && window.pokemonAbilities.tyranitar.isTyranitar(piece)) {
+            // 先移除已有的同ID特效
+            window.pokemonAbilities.tyranitar.removeSpecificSandstormEffect(piece.id);
+            window.pokemonAbilities.tyranitar.removeSpecificSandBackgroundEffect(piece.id);
+            
+            // 创建沙地图案背景
+            const sandBackground = window.pokemonAbilities.tyranitar.createSandBackgroundEffect(piece, cellWidth, cellHeight);
+            if (sandBackground) {
+                gameBoard.appendChild(sandBackground);
+            }
+            
+            // 创建沙尘暴特效
+            const sandstormEffect = window.pokemonAbilities.tyranitar.createSandstormEffect(piece, cellWidth, cellHeight);
+            if (sandstormEffect) {
+                gameBoard.appendChild(sandstormEffect);
+            }
+        }
+
         // 在格子左侧添加纵向血量条
         const healthContainer = document.createElement('div');
         healthContainer.classList.add('vertical-health-container');
@@ -1335,8 +1376,8 @@ function clearAllHighlights() {
     });
     
     // 清除所有移动、攻击和交换高亮
-    document.querySelectorAll('.cell-highlight, .cell-attack, .cell-swap').forEach(cell => {
-        cell.classList.remove('cell-highlight', 'cell-attack', 'cell-swap');
+    document.querySelectorAll('.cell-highlight, .cell-attack, .cell-swap, .cell-scizor-attack').forEach(cell => {
+        cell.classList.remove('cell-highlight', 'cell-attack', 'cell-swap', 'cell-scizor-attack');
     });
     
     // 清除所有数据属性
@@ -1400,10 +1441,69 @@ function handleCellClick(x, y) {
             handleSwap(cell.dataset.targetId);
             return;
         } else if (cell.dataset.move) {
-            const oldX = gameState.selectedPiece.x;
-            const oldY = gameState.selectedPiece.y;
-            handleMove(x, y, oldX, oldY);
-            return;
+            // 检查是否是巨钳螳螂且处于攻击模式
+            const isScizorAttackMode = window.pokemonAbilities && window.pokemonAbilities.scizor && 
+                                      window.pokemonAbilities.scizor.isScizor(gameState.selectedPiece) && 
+                                      window.pokemonAbilities.scizor.isInAttackMode(gameState.selectedPiece.id);
+            
+            if (isScizorAttackMode) {
+                // 巨钳螳螂攻击模式下，不移动，而是进行方向攻击
+                // 计算点击的方向
+                const dx = x > gameState.selectedPiece.x ? 1 : (x < gameState.selectedPiece.x ? -1 : 0);
+                const dy = y > gameState.selectedPiece.y ? 1 : (y < gameState.selectedPiece.y ? -1 : 0);
+                
+                // 检查是否是四个基本方向之一（上、下、左、右）
+                if ((dx !== 0 && dy === 0) || (dx === 0 && dy !== 0)) {
+                    // 寻找该方向上的第一个敌方棋子
+                    let distance = 1;
+                    let targetPiece = null;
+                    
+                    while (true) {
+                        const newX = gameState.selectedPiece.x + dx * distance;
+                        const newY = gameState.selectedPiece.y + dy * distance;
+                        
+                        // 检查是否超出棋盘范围
+                        if (newX < 0 || newX >= gameState.boardSize.x || newY < 0 || newY >= gameState.boardSize.y) {
+                            break;
+                        }
+                        
+                        // 检查是否在河流中（如果不能在河流中移动）
+                        if (isInRiver(newY) && !canMoveInRiver(gameState.selectedPiece, dx, dy)) {
+                            break;
+                        }
+                        
+                        const blockingPiece = getPieceAtPosition(newX, newY);
+                        
+                        // 找到第一个棋子
+                        if (blockingPiece) {
+                            // 如果是敌方棋子，进行攻击
+                            if (blockingPiece.player !== gameState.selectedPiece.player) {
+                                targetPiece = blockingPiece;
+                            }
+                            break;
+                        }
+                        
+                        distance++;
+                    }
+                    
+                    // 如果找到目标，进行攻击
+                    if (targetPiece) {
+                        handleAttack(targetPiece.id);
+                    } else {
+                        addMessage('该方向上没有可攻击的目标！', 'info');
+                    }
+                } else {
+                    addMessage('请选择上、下、左、右四个方向之一！', 'info');
+                }
+                
+                return;
+            } else {
+                // 其他棋子或巨钳螳螂非攻击模式下，正常移动
+                const oldX = gameState.selectedPiece.x;
+                const oldY = gameState.selectedPiece.y;
+                handleMove(x, y, oldX, oldY);
+                return;
+            }
         }
     }
     
@@ -1413,7 +1513,27 @@ function handleCellClick(x, y) {
             return;
         }
         
+        // 如果点击的是已选中的巨钳螳螂，切换攻击模式
         if (gameState.selectedPiece && gameState.selectedPiece.id === pieceOnCell.id) {
+            if (window.pokemonAbilities && window.pokemonAbilities.scizor && 
+                window.pokemonAbilities.scizor.isScizor(pieceOnCell)) {
+                // 切换巨钳螳螂的攻击模式
+                const isAttackMode = window.pokemonAbilities.scizor.toggleAttackMode(pieceOnCell.id);
+                
+                // 重新高亮移动范围，使用新的颜色
+                forceHighlightSelectedPiece();
+                
+                // 显示状态变化消息
+                if (isAttackMode) {
+                    addMessage(`${pieceOnCell.name} 进入攻击模式！点击红色光效方向进行直线攻击`);
+                } else {
+                    addMessage(`${pieceOnCell.name} 退出攻击模式！`);
+                }
+                
+                return;
+            }
+            
+            // 对于其他棋子，正常取消选择
             deselectPiece();
             return;
         }
@@ -1452,6 +1572,12 @@ function selectPiece(piece) {
 function deselectPiece() {
     if (!gameState.selectedPiece) return;
     
+    // 如果是巨钳螳螂，清除其攻击模式
+    if (window.pokemonAbilities && window.pokemonAbilities.scizor && 
+        window.pokemonAbilities.scizor.isScizor(gameState.selectedPiece)) {
+        window.pokemonAbilities.scizor.clearAttackMode(gameState.selectedPiece.id);
+    }
+    
     clearAllHighlights();
     
     gameState.selectedPiece = null;
@@ -1469,6 +1595,62 @@ function calculateAvailableMovesAndAttacks(piece) {
     const attackable = [];
     const swappable = []; // 可交换的友方棋子
     const devourable = []; // 可吞噬的友方棋子（恶食大王专用）
+    
+    // 检查是否为巨钳螳螂且处于攻击模式
+    const isScizorAttackMode = window.pokemonAbilities && window.pokemonAbilities.scizor && 
+                               window.pokemonAbilities.scizor.isScizor(piece) && 
+                               window.pokemonAbilities.scizor.isInAttackMode(piece.id);
+    
+    // 对于巨钳螳螂攻击模式，使用无限射程（覆盖整个棋盘）
+    if (isScizorAttackMode) {
+        // 只在四个基本方向上（上、下、左、右）
+        const directions = [
+            {dx: 1, dy: 0}, {dx: -1, dy: 0}, {dx: 0, dy: 1}, {dx: 0, dy: -1}
+        ];
+        
+        directions.forEach(({dx, dy}) => {
+            let distance = 1;
+            let firstEnemyFound = false;
+            
+            // 一直延伸到棋盘边缘
+            while (true) {
+                const newX = piece.x + dx * distance;
+                const newY = piece.y + dy * distance;
+                
+                // 检查是否超出棋盘范围
+                if (newX < 0 || newX >= gameState.boardSize.x || newY < 0 || newY >= gameState.boardSize.y) {
+                    break;
+                }
+                
+                // 检查是否在河流中（如果不能在河流中移动）
+                if (isInRiver(newY) && !canMoveInRiver(piece, dx, dy)) {
+                    break;
+                }
+                
+                const blockingPiece = getPieceAtPosition(newX, newY);
+                
+                // 为这个格子添加移动标记（用于显示红色光效）
+                moves.push({x: newX, y: newY});
+                
+                // 如果遇到棋子，检查是否是敌方棋子
+                if (blockingPiece) {
+                    // 如果是敌方棋子，且是该方向第一个遇到的敌方棋子，添加到可攻击列表
+                    if (blockingPiece.player !== piece.player && !firstEnemyFound) {
+                        attackable.push(blockingPiece);
+                        firstEnemyFound = true;
+                    }
+                    // 遇到任何棋子都停止该方向的延伸（即使是友方棋子）
+                    break;
+                }
+                
+                distance++;
+            }
+        });
+        
+        return {moves, attackable, swappable};
+    }
+    
+    // 原有代码：正常计算移动范围
     const maxDistance = piece.move;
     
     // 处理双属性精灵
@@ -1549,6 +1731,11 @@ function calculateAvailableMovesAndAttacks(piece) {
 
 // 检查是否在河流行
 function isInRiver(y) {
+    // 如果是第三关，没有河流
+    if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 3) {
+        return false;
+    }
+    
     // 如果是第二关，河流扩展到y=4和y=7行
     if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 2) {
         return y === 4 || y === 5 || y === 6 || y === 7;
@@ -1577,18 +1764,27 @@ function getPieceAtPosition(x, y) {
 function highlightAvailableMovesAndAttacks() {
     // 先清除已有的高亮
     document.querySelectorAll('.cell[data-move="true"], .cell[data-attack="true"], .cell[data-swap="true"]').forEach(cell => {
-        cell.classList.remove('cell-highlight', 'cell-attack', 'cell-swap');
+        cell.classList.remove('cell-highlight', 'cell-attack', 'cell-swap', 'cell-scizor-attack');
         delete cell.dataset.move;
         delete cell.dataset.attack;
         delete cell.dataset.swap;
         delete cell.dataset.targetId;
     });
     
-    // 高亮可移动位置（绿色呼吸光效）
+    // 高亮可移动位置
     gameState.availableMoves.forEach(move => {
         const cell = document.querySelector(`.cell[data-x="${move.x}"][data-y="${move.y}"]`);
         if (cell) {
-            cell.classList.add('cell-highlight');
+            // 检查是否是巨钳螳螂且处于攻击模式
+            if (gameState.selectedPiece && window.pokemonAbilities && window.pokemonAbilities.scizor && 
+                window.pokemonAbilities.scizor.isScizor(gameState.selectedPiece) && 
+                window.pokemonAbilities.scizor.isInAttackMode(gameState.selectedPiece.id)) {
+                // 使用红色高亮
+                cell.classList.add('cell-scizor-attack');
+            } else {
+                // 使用正常的绿色高亮
+                cell.classList.add('cell-highlight');
+            }
             cell.dataset.move = 'true';
         }
     });
@@ -1645,6 +1841,20 @@ function handleMove(newX, newY, oldX, oldY) {
     // 更新棋子位置
     gameState.selectedPiece.x = newX;
     gameState.selectedPiece.y = newY;
+    
+    // 如果是班基拉斯，更新沙地图案背景和沙尘暴特效位置
+    if (window.pokemonAbilities && window.pokemonAbilities.tyranitar && 
+        window.pokemonAbilities.tyranitar.isTyranitar(gameState.selectedPiece)) {
+        
+        const cellWidth = gameBoard.clientWidth / gameState.boardSize.x;
+        const cellHeight = gameBoard.clientHeight / gameState.boardSize.y;
+        
+        // 更新沙地图案背景位置
+        window.pokemonAbilities.tyranitar.updateSandBackgroundEffectPosition(gameState.selectedPiece, cellWidth, cellHeight);
+        
+        // 更新沙尘暴特效位置
+        window.pokemonAbilities.tyranitar.updateSandstormEffectPosition(gameState.selectedPiece, cellWidth, cellHeight);
+    }
     
     // 重新渲染并保持高亮
     renderPieces();
@@ -1756,9 +1966,40 @@ function handleAttack(targetId) {
         }
     }
     
-    const isImmune = checkImmunity(attacker, target);
-    const isSuper = !isImmune && isSuperEffective(attacker, target);
-    const isNot = !isImmune && !isSuper && isNotEffective(attacker, target);
+    // 检查是否为攻击模式下的巨钳螳螂
+    const isScizorAttackMode = attacker.name === '巨钳螳螂' || attacker.id === 'scizor';
+    const isAttackModeActive = isScizorAttackMode && 
+                             window.pokemonAbilities && 
+                             window.pokemonAbilities.scizor && 
+                             window.pokemonAbilities.scizor.isInAttackMode(attacker.id);
+    
+    // 对于攻击模式下的巨钳螳螂，检查行动次数
+    if (isAttackModeActive) {
+        // 检查是否有2次行动次数
+        if (gameState.movesRemaining < 2) {
+            addMessage('巨钳螳螂需要2次行动次数才能使用攻击模式！');
+            return;
+        }
+        addMessage('巨钳螳螂发动攻击模式！消耗2次行动次数！');
+    }
+    
+    // 计算属性克制关系
+    let isImmune = false;
+    let isSuper = false;
+    let isNot = false;
+    
+    if (isAttackModeActive) {
+        // 攻击模式下的巨钳螳螂只使用钢系属性
+        const steelTypeAttacker = { ...attacker, type: 'steel' };
+        isImmune = checkImmunity(steelTypeAttacker, target);
+        isSuper = !isImmune && isSuperEffective(steelTypeAttacker, target);
+        isNot = !isImmune && !isSuper && isNotEffective(steelTypeAttacker, target);
+    } else {
+        // 正常攻击模式
+        isImmune = checkImmunity(attacker, target);
+        isSuper = !isImmune && isSuperEffective(attacker, target);
+        isNot = !isImmune && !isSuper && isNotEffective(attacker, target);
+    }
     
     // 计算攻击方向
     const dx = target.x > attacker.x ? 1 : (target.x < attacker.x ? -1 : 0);
@@ -1778,8 +2019,11 @@ function handleAttack(targetId) {
     const oldX = attacker.x;
     const oldY = attacker.y;
     
-    // 移动攻击者
-    if (isAdjacentValid && !adjacentHasPiece) {
+    // 检查是否为攻击模式下的巨钳螳螂
+    const shouldSkipMovement = isAttackModeActive;
+    
+    // 移动攻击者 - 攻击模式下的巨钳螳螂不移动
+    if (!shouldSkipMovement && isAdjacentValid && !adjacentHasPiece) {
         attacker.x = adjacentX;
         attacker.y = adjacentY;
     } else {
@@ -1793,17 +2037,36 @@ function handleAttack(targetId) {
     }
     
     // 计算伤害
-    const damage = isImmune ? 0 : calculateDamage(attacker, target);
-    
-    // 显示伤害数字
-    showDamagePopup(target.x, target.y, damage, isImmune);
-    
-    // 应用伤害
+    let damage = 0;
     if (!isImmune) {
-        target.currentHp -= damage;
+        if (isAttackModeActive) {
+            // 攻击模式下的巨钳螳螂基础伤害为1点，但享受所有属性加成
+            const steelTypeAttacker = { ...attacker, type: 'steel' };
+            
+            // 创建一个临时攻击者对象，基础攻击设为1
+            const tempAttacker = {
+                ...steelTypeAttacker,
+                atk: 1 // 设置基础伤害为1点
+            };
+            
+            // 使用标准的calculateDamage函数计算最终伤害，确保所有加成都被正确应用
+            damage = calculateDamage(tempAttacker, target);
+        } else {
+            // 正常攻击模式下使用标准伤害计算
+            damage = calculateDamage(attacker, target);
+        }
     }
     
-    setTimeout(() => {
+    // 定义处理伤害结算的函数
+    function processDamage() {
+        // 显示伤害数字
+        showDamagePopup(target.x, target.y, damage, isImmune);
+        
+        // 应用伤害
+        if (!isImmune) {
+            target.currentHp -= damage;
+        }
+        
         if (attackerEl) {
             attackerEl.classList.remove('attacking');
         }
@@ -1823,12 +2086,19 @@ function handleAttack(targetId) {
         } else {
             addMessage(`${attacker.name} 攻击了 ${target.name}，${effectText} 造成了 ${damage} 点伤害！`);
             
-            // 检查目标是否被击败
+            // 检查目标是否被击败 - 攻击模式下的巨钳螳螂不占据目标位置
             if (target.currentHp <= 0) {
                 gameState.pieces = gameState.pieces.filter(p => p.id !== target.id);
-                attacker.x = target.x;
-                attacker.y = target.y;
-                addMessage(`${target.name} 被击败了！${attacker.name} 占据了其位置`);
+                
+                // 只有非攻击模式下的巨钳螳螂或其他宝可梦才会占据目标位置
+                if (!shouldSkipMovement) {
+                    attacker.x = target.x;
+                    attacker.y = target.y;
+                    addMessage(`${target.name} 被击败了！${attacker.name} 占据了其位置`);
+                } else {
+                    addMessage(`${target.name} 被击败了！`);
+                }
+                
                 checkGameEnd();
             }
         }
@@ -1836,8 +2106,14 @@ function handleAttack(targetId) {
         // 重新渲染并保持高亮
         renderPieces();
         
-        // 减少移动次数
-        gameState.movesRemaining--;
+        // 减少移动次数 - 根据攻击模式决定消耗次数
+        if (isAttackModeActive) {
+            // 攻击模式下的巨钳螳螂消耗全部2次行动次数
+            gameState.movesRemaining = 0;
+        } else {
+            // 普通攻击只消耗1次行动次数
+            gameState.movesRemaining--;
+        }
         updateMoveCounter();
         
         // 同步到Firebase
@@ -1853,7 +2129,19 @@ function handleAttack(targetId) {
         
         // 确保攻击后边框正确显示
         updatePieceBorders();
-    }, 500);
+    }
+    
+    // 检查是否为需要延迟伤害结算的动画（如巨钳螳螂的攻击模式）
+    let animationDelayNeeded = false;
+    if (window.AttackAnimation && window.AttackAnimation.playAttackAnimation) {
+        // 对于需要延迟伤害结算的动画，传入回调函数
+        animationDelayNeeded = window.AttackAnimation.playAttackAnimation(attacker, target, processDamage);
+    }
+    
+    // 如果不需要延迟伤害结算，则立即处理
+    if (!animationDelayNeeded) {
+        setTimeout(processDamage, 500); // 保持原有的延迟时间
+    }
 }
 
 // 显示伤害数字弹窗
@@ -2070,9 +2358,20 @@ function checkGameEnd() {
     const blueHasPieces = gameState.pieces.some(p => p.player === 'blue');
     const redHasPieces = gameState.pieces.some(p => p.player === 'red');
     
+    let gameEnded = false;
+    
     if (!blueHasPieces) {
-        addMessage('红色方获胜！游戏结束');
+        // 检查是否是AI模式且第一关
+        if (aiGameState.isAIMode && aiGameState.currentLevel === 1) {
+            addMessage('<span style="color:rgb(85, 187, 255);">真是可惜，或许你距离扬帆起航只差一艘更坚实的船也说不定...</span>');
+        } else if (aiGameState.isAIMode && aiGameState.currentLevel === 2) {
+            addMessage(LEVEL_MESSAGES.DEFEAT.LEVEL_2);
+        } else {
+            addMessage('红色方获胜！游戏结束');
+        }
+        
         gameState.gameStarted = false;
+        gameEnded = true;
         
         // 同步游戏结束状态
         if (onlineState.isOnline) {
@@ -2083,8 +2382,17 @@ function checkGameEnd() {
             });
         }
     } else if (!redHasPieces) {
-        addMessage('蓝色方获胜！游戏结束');
+        // 检查是否是AI模式
+        if (aiGameState.isAIMode && aiGameState.currentLevel === 1) {
+            addMessage(LEVEL_MESSAGES.VICTORY.LEVEL_1);
+        } else if (aiGameState.isAIMode && aiGameState.currentLevel === 2) {
+            addMessage(LEVEL_MESSAGES.VICTORY.LEVEL_2);
+        } else {
+            addMessage('蓝色方获胜！游戏结束');
+        }
+        
         gameState.gameStarted = false;
+        gameEnded = true;
         
         // 同步游戏结束状态
         if (onlineState.isOnline) {
@@ -2095,6 +2403,7 @@ function checkGameEnd() {
             });
         }
     }
+    return gameEnded;
 }
 
 // 添加消息 - 支持HTML内容以显示彩色文本
@@ -2205,6 +2514,11 @@ function resetGame() {
     window.pokemonAbilities.kyogre.removeRainEffects();
   }
   
+  // 新增：清除班基拉斯沙尘暴特效
+  if (window.pokemonAbilities && window.pokemonAbilities.tyranitar && window.pokemonAbilities.tyranitar.removeSandstormEffects) {
+    window.pokemonAbilities.tyranitar.removeSandstormEffects();
+  }
+  
   // 新增：清除原始盖欧卡全棋盘下雨特效
   if (window.primalKyogreEffects && window.primalKyogreEffects.removeEffects) {
     window.primalKyogreEffects.removeEffects();
@@ -2267,6 +2581,11 @@ function performActualReset() {
   // 新增：清除盖欧卡下雨特效
   if (window.pokemonAbilities && window.pokemonAbilities.kyogre && window.pokemonAbilities.kyogre.removeRainEffects) {
     window.pokemonAbilities.kyogre.removeRainEffects();
+  }
+  
+  // 新增：清除班基拉斯沙尘暴特效
+  if (window.pokemonAbilities && window.pokemonAbilities.tyranitar && window.pokemonAbilities.tyranitar.removeSandstormEffects) {
+    window.pokemonAbilities.tyranitar.removeSandstormEffects();
   }
   
   // 新增：清除原始盖欧卡全棋盘下雨特效
@@ -2411,6 +2730,76 @@ window.addEventListener('resize', () => {
             }
         }
     }, 1000);
+}
+
+// 设置兑换码功能
+function setupRedeemCodeFeature() {
+    const redeemModal = document.getElementById('redeem-modal');
+    const redeemBtn = document.getElementById('redeem-code-btn');
+    const closeRedeemBtn = document.getElementById('close-redeem-btn');
+    const confirmRedeemBtn = document.getElementById('confirm-redeem-btn');
+    const redeemCodeInput = document.getElementById('redeem-code-input');
+    
+    // 打开兑换码弹窗
+    redeemBtn.addEventListener('click', () => {
+        redeemModal.classList.remove('hidden');
+        redeemCodeInput.value = '';
+    });
+    
+    // 关闭兑换码弹窗
+    closeRedeemBtn.addEventListener('click', () => {
+        redeemModal.classList.add('hidden');
+    });
+    
+    // 点击弹窗外部关闭
+    redeemModal.addEventListener('click', (e) => {
+        if (e.target === redeemModal) {
+            redeemModal.classList.add('hidden');
+        }
+    });
+    
+    // 确认兑换
+    confirmRedeemBtn.addEventListener('click', () => {
+        const code = redeemCodeInput.value.trim();
+        
+        if (code.toLowerCase() === 'hanfongyds') {
+            // 检查巨钳螳螂是否已经在棋包中
+            const scizorExists = pokemonData.some(p => p.id === 'scizor');
+            
+            if (!scizorExists) {
+                // 从AIChessSet.js中获取巨钳螳螂数据
+                const scizorData = aiPokemonData.find(p => p.id === 'scizor');
+                
+                if (scizorData) {
+                    // 创建巨钳螳螂的副本并修改图片路径为玩家宝可梦
+                    const playerScizor = {
+                        ...scizorData,
+                        image: 'player-pokemon/巨钳螳螂.gif'
+                    };
+                    
+                    // 将巨钳螳螂添加到玩家棋包
+                    pokemonData.push(playerScizor);
+                    
+                    // 在消息区域播报
+                    addMessage('恭喜获得隐藏精灵 巨钳螳螂！', 'success');
+                    
+                    // 如果棋包弹窗已打开，更新棋包显示
+                    if (!document.getElementById('pack-modal').classList.contains('hidden')) {
+                        createPokemonPack();
+                    }
+                } else {
+                    addMessage('兑换失败：无法找到巨钳螳螂数据', 'error');
+                }
+            } else {
+                addMessage('您已经拥有巨钳螳螂了！', 'info');
+            }
+            
+            // 关闭弹窗
+            redeemModal.classList.add('hidden');
+        } else {
+            addMessage('兑换码错误，请重试', 'error');
+        }
+    });
 }
 
 // 初始化游戏
