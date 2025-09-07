@@ -90,10 +90,82 @@ const aiPokemonData = [
         typeName: ['水','冰'],
         image: 'ai-pokemon/拉普拉斯.gif',
          },
+    {   id: 'tyranitar',
+        name: '班基拉斯',
+        hp: 5.5,
+        atk: 2,
+        move: 1,
+        type: ['rock','dark'],
+        typeName: ['岩石','恶'],
+        image: 'ai-pokemon/班基拉斯.gif',
+    },
+    // 添加隆隆岩数据
+    {   id: 'golem',
+        name: '隆隆岩',
+        hp: 5,
+        atk: 1.5,
+        move: 1,
+        type: ['rock','ground'],
+        typeName: ['岩石','地面'],
+        image: 'ai-pokemon/隆隆岩.gif',
+    },
+        {   id: 'tyrantrum',
+        name: '怪颚龙',
+        hp: 5.5,
+        atk: 2.5,
+        move: 2,
+        type: ['rock','dragon'],
+        typeName: ['岩石','龙'],
+        image: 'ai-pokemon/怪颚龙.gif',
+    },
+        { id: 'cradily',
+        name: '摇篮百合',
+        hp: 6.5,
+        atk: 1.5,
+        move: 2,
+        type: ['rock','grass'],
+        typeName: ['岩石','草'],
+        image: 'ai-pokemon/摇篮百合.gif',
+    },
+        { id: 'aerodactyl',
+        name: '化石翼龙',
+        hp: 4.5,
+        atk: 2,
+        move: 3,
+        type: ['rock','flying'],
+        typeName: ['岩石','飞行'],
+        image: 'ai-pokemon/化石翼龙.gif',
+    },
+        { id: 'excadrill',
+        name: '龙头地鼠',
+        hp: 3.5,
+        atk: 2.5,
+        move: 2,
+        type: ['ground','steel'],
+        typeName: ['地面','钢'],
+        image: 'ai-pokemon/龙头地鼠.gif',
+    },
+        { id: 'scizor',
+        name: '巨钳螳螂',
+        hp: 3.5,
+        atk: 2,
+        move: 2,
+        type: ['bug','steel'],
+        typeName: ['虫','钢'],
+        image: 'ai-pokemon/巨钳螳螂.gif',
+    }
 ];
 
 // AI关卡配置
 const aiLevels = [
+    {
+        level: 0,
+        name: '第零关 「裂空的陨落」',
+        difficulty: '无',
+        redirect: '裂空的陨落.html',
+        aiPieces: [],
+        initialPositions: []
+    },   
     {
         level: 1,
         name: '第一关 「源始的海洋」',
@@ -138,6 +210,31 @@ const aiLevels = [
             { x: 3, y: 3 },  // 臭臭泥
             { x: 6, y: 4 },  //美纳斯
             { x: 1, y: 4 },  //拉普拉斯
+        ]
+    },
+        {
+        level: 3,
+        name: '第三关 「沙漠的暴君」',
+        difficulty: '普通',
+        aiPieces: [
+            aiPokemonData.find(p => p.id === 'tyranitar'),
+            aiPokemonData.find(p => p.id === 'tyranitar'), // 班基拉斯（沙漠暴君）
+            aiPokemonData.find(p => p.id === 'golem'), //隆隆岩
+            aiPokemonData.find(p => p.id === 'tyrantrum'),     // 怪颚龙
+            aiPokemonData.find(p => p.id === 'cradily'),// 摇篮百合
+            aiPokemonData.find(p => p.id === 'aerodactyl'),//化石翼龙
+            aiPokemonData.find(p => p.id === 'excadrill'), //龙头地鼠
+            aiPokemonData.find(p => p.id === 'excadrill'), //龙头地鼠
+        ],
+        initialPositions: [
+            { x: 1, y: 1 }, // 班基拉斯
+            { x: 8, y: 1 }, // 班基拉斯
+            { x: 4, y: 3 },  // 隆隆岩
+            { x: 8, y: 4 },  //怪颚龙
+            { x: 7, y: 5 },  //摇篮百合
+            { x: 2, y: 5 }, //化石翼龙
+            { x: 7, y: 2 },// 龙头地鼠
+            { x: 2, y: 2 }
         ]
     }
 ];
