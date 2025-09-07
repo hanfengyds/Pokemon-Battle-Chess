@@ -218,6 +218,173 @@ const pokemonAbilities = {
             
             return true;
         }
+    },
+    
+    // 班基拉斯的沙尘暴特效
+    tyranitar: {
+        // 检查是否为班基拉斯
+        isTyranitar: function(piece) {
+            return piece && piece.id && piece.id.includes('tyranitar');
+        },
+        
+        // 创建沙地图案背景
+        createSandBackgroundEffect: function(piece, cellWidth, cellHeight) {
+            if (!this.isTyranitar(piece) || piece.currentHp <= 0) return null;
+            
+            const boardWidth = gameBoard.clientWidth;
+            const boardHeight = gameBoard.clientHeight;
+            
+            // 1格范围内的区域（自身周围一圈）
+            const effectLeft = Math.max(0, (piece.x - 1) * cellWidth);
+            const effectTop = Math.max(0, (gameState.boardSize.y - 1 - (piece.y + 1)) * cellHeight);
+            const effectWidth = Math.min(boardWidth, (3 * cellWidth));
+            const effectHeight = Math.min(boardHeight, (3 * cellHeight));
+            
+            const sandBackground = document.createElement('div');
+            sandBackground.className = 'sand-background-effect';
+            sandBackground.setAttribute('data-piece-id', piece.id);
+            sandBackground.style.left = `${effectLeft}px`;
+            sandBackground.style.top = `${effectTop}px`;
+            sandBackground.style.width = `${effectWidth}px`;
+            sandBackground.style.height = `${effectHeight}px`;
+            
+            return sandBackground;
+        },
+        
+        // 移除所有沙地图案背景
+        removeSandBackgroundEffects: function() {
+            document.querySelectorAll('.sand-background-effect').forEach(effect => effect.remove());
+        },
+        
+        // 移除特定班基拉斯的沙地图案背景
+        removeSpecificSandBackgroundEffect: function(pieceId) {
+            const effect = document.querySelector('.sand-background-effect[data-piece-id="' + pieceId + '"]');
+            if (effect) {
+                effect.remove();
+            }
+        },
+        
+        // 更新沙地图案背景位置
+        updateSandBackgroundEffectPosition: function(piece, cellWidth, cellHeight) {
+            if (!this.isTyranitar(piece) || piece.currentHp <= 0) return;
+            
+            const boardWidth = gameBoard.clientWidth;
+            const boardHeight = gameBoard.clientHeight;
+            
+            // 计算新的特效位置
+            const effectLeft = Math.max(0, (piece.x - 1) * cellWidth);
+            const effectTop = Math.max(0, (gameState.boardSize.y - 1 - (piece.y + 1)) * cellHeight);
+            const effectWidth = Math.min(boardWidth, (3 * cellWidth));
+            const effectHeight = Math.min(boardHeight, (3 * cellHeight));
+            
+            // 找到对应的特效并更新位置
+            const sandBackground = document.querySelector('.sand-background-effect[data-piece-id="' + piece.id + '"]');
+            if (sandBackground) {
+                sandBackground.style.left = `${effectLeft}px`;
+                sandBackground.style.top = `${effectTop}px`;
+                sandBackground.style.width = `${effectWidth}px`;
+                sandBackground.style.height = `${effectHeight}px`;
+            }
+        },
+        
+        // 创建沙尘暴特效（原有的方法，保持不变）
+        createSandstormEffect: function(piece, cellWidth, cellHeight) {
+            if (!this.isTyranitar(piece) || piece.currentHp <= 0) return null;
+            
+            const boardWidth = gameBoard.clientWidth;
+            const boardHeight = gameBoard.clientHeight;
+            
+            // 1格范围内的区域（自身周围一圈）
+            const effectLeft = Math.max(0, (piece.x - 1) * cellWidth);
+            const effectTop = Math.max(0, (gameState.boardSize.y - 1 - (piece.y + 1)) * cellHeight);
+            const effectWidth = Math.min(boardWidth, (3 * cellWidth));
+            const effectHeight = Math.min(boardHeight, (3 * cellHeight));
+            
+            const sandstormEffect = document.createElement('div');
+            sandstormEffect.className = 'sandstorm-effect';
+            sandstormEffect.setAttribute('data-piece-id', piece.id);
+            sandstormEffect.style.left = `${effectLeft}px`;
+            sandstormEffect.style.top = `${effectTop}px`;
+            sandstormEffect.style.width = `${effectWidth}px`;
+            sandstormEffect.style.height = `${effectHeight}px`;
+            
+            // 创建沙尘暴粒子
+            for (let i = 0; i < 100; i++) {
+                const sandParticle = document.createElement('div');
+                sandParticle.className = 'sand-particle';
+                sandParticle.style.left = `${Math.random() * effectWidth}px`;
+                sandParticle.style.animationDelay = `${Math.random() * 1}s`;
+                sandParticle.style.opacity = `${0.3 + Math.random() * 0.7}`;
+                sandParticle.style.width = `${2 + Math.random() * 4}px`;
+                sandParticle.style.height = `${2 + Math.random() * 4}px`;
+                sandstormEffect.appendChild(sandParticle);
+            }
+            
+            return sandstormEffect;
+        },
+        
+        // 移除沙尘暴特效
+        removeSandstormEffects: function() {
+            document.querySelectorAll('.sandstorm-effect').forEach(effect => effect.remove());
+        },
+        
+        // 更新沙尘暴特效位置
+        updateSandstormEffectPosition: function(piece, cellWidth, cellHeight) {
+            if (!this.isTyranitar(piece) || piece.currentHp <= 0) return;
+            
+            const boardWidth = gameBoard.clientWidth;
+            const boardHeight = gameBoard.clientHeight;
+            
+            // 计算新的特效位置
+            const effectLeft = Math.max(0, (piece.x - 1) * cellWidth);
+            const effectTop = Math.max(0, (gameState.boardSize.y - 1 - (piece.y + 1)) * cellHeight);
+            const effectWidth = Math.min(boardWidth, (3 * cellWidth));
+            const effectHeight = Math.min(boardHeight, (3 * cellHeight));
+            
+            // 找到对应的特效并更新位置
+            const sandstormEffect = document.querySelector('.sandstorm-effect[data-piece-id="' + piece.id + '"]');
+            if (sandstormEffect) {
+                sandstormEffect.style.left = `${effectLeft}px`;
+                sandstormEffect.style.top = `${effectTop}px`;
+                sandstormEffect.style.width = `${effectWidth}px`;
+                sandstormEffect.style.height = `${effectHeight}px`;
+            }
+        },
+        
+        // 移除特定班基拉斯的特效（用于移动后删除原有特效）
+        removeSpecificSandstormEffect: function(pieceId) {
+            const effect = document.querySelector('.sandstorm-effect[data-piece-id="' + pieceId + '"]');
+            if (effect) {
+                effect.remove();
+            }
+        }
+    },
+    
+    // 巨钳螳螂的攻击模式特效
+    scizor: {
+        // 存储各巨钳螳螂实例的攻击模式状态
+        attackModeMap: {},
+        
+        // 检查是否为巨钳螳螂
+        isScizor: function(piece) {
+            return piece && piece.id && piece.id.includes('scizor');
+        },
+        
+        // 切换攻击模式状态
+        toggleAttackMode: function(pieceId) {
+            this.attackModeMap[pieceId] = !this.attackModeMap[pieceId];
+            return this.attackModeMap[pieceId];
+        },
+        
+        // 检查是否处于攻击模式
+        isInAttackMode: function(pieceId) {
+            return !!this.attackModeMap[pieceId];
+        },
+        
+        // 清除攻击模式状态
+        clearAttackMode: function(pieceId) {
+            delete this.attackModeMap[pieceId];
+        }
     }
 };
 
@@ -327,17 +494,16 @@ const primalKyogreEffects = {
         // 不再移除特效，只更新攻击力显示
         // this.removeEffects();
         
-        // 检查是否需要创建特效（如果特效不存在且原始盖欧卡在场）
+        // 检查是否需要创建特效（如果特效不存在且原始盖欧卡存在）
         if (this.hasPrimalKyogre()) {
-            const existingEffect = document.querySelector('.primal-kyogre-full-rain');
-            if (!existingEffect) {
-                const effect = this.createFullBoardRainEffect();
-                if (effect) {
-                    gameBoard.appendChild(effect);
+            if (!document.querySelector('.primal-kyogre-full-rain')) {
+                const rainEffect = this.createFullBoardRainEffect();
+                if (rainEffect) {
+                    gameBoard.appendChild(rainEffect);
                 }
             }
         } else {
-            // 如果没有原始盖欧卡在场，移除特效
+            // 如果没有原始盖欧卡，则移除特效
             this.removeEffects();
         }
         
