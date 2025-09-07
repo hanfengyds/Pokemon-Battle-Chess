@@ -75,12 +75,40 @@ function startAIChallenge(level) {
     const levelConfig = aiLevels.find(l => l.level === level);
     if (!levelConfig) return;
     
+    // 检查是否有redirect属性，如果有则执行页面跳转
+    if (levelConfig.redirect) {
+        window.location.href = levelConfig.redirect;
+        return;
+    }
+    
     aiGameState.isAIMode = true;
     aiGameState.currentLevel = level;
     aiGameState.aiTurn = false;
     
     // 使用专门的重置函数而不是resetGame()
     resetGameForAI();
+    
+    // 添加：第三关特殊样式
+    const gameBoard = document.getElementById('game-board');
+    
+    // 先移除所有可能的关卡特殊类
+    gameBoard.classList.remove('ai-level-1', 'ai-level-2', 'ai-level-3');
+    
+    // 移除之前可能存在的沙漠覆盖层
+    const existingSandyLayer = document.querySelector('.sandy-bottom-layer');
+    if (existingSandyLayer) {
+        existingSandyLayer.remove();
+    }
+    
+    if (level === 3) {
+        // 第三关添加沙漠背景
+        gameBoard.classList.add('ai-level-3');
+        
+        // 创建并添加底部沙漠覆盖层
+        const sandyLayer = document.createElement('div');
+        sandyLayer.className = 'sandy-bottom-layer';
+        gameBoard.appendChild(sandyLayer);
+    }
     
     // 设置AI棋子
     aiGameState.aiPieces = levelConfig.aiPieces.map((pokemon, index) => ({
@@ -378,6 +406,25 @@ function resetGameForAI() {
     if (window.pokemonAbilities && window.pokemonAbilities.kyogre && window.pokemonAbilities.kyogre.removeRainEffects) {
         window.pokemonAbilities.kyogre.removeRainEffects();
     }
+    
+    // 新增：清除班基拉斯沙尘暴特效
+    if (window.pokemonAbilities && window.pokemonAbilities.tyranitar && window.pokemonAbilities.tyranitar.removeSandstormEffects) {
+        window.pokemonAbilities.tyranitar.removeSandstormEffects();
+    }
+    
+    // 新增：清除底部沙漠覆盖层 (grass.png)
+    const sandyLayer = document.querySelector('.sandy-bottom-layer');
+    if (sandyLayer) {
+        sandyLayer.remove();
+    }
+    
+    // 新增：清除班基拉斯沙地图案背景 (grass-d.png)
+    const sandBackgroundEffects = document.querySelectorAll('.sand-background-effect');
+    sandBackgroundEffects.forEach(effect => effect.remove());
+    
+    // 新增：清除沙地图案背景
+    const gameBoard = document.getElementById('game-board');
+    gameBoard.classList.remove('ai-level-3');
     
     // 新增：重新初始化河流效果
     if (typeof initRiverCanvas === 'function') {
