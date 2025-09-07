@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝可梦棋子 - 新手演示</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind CSS -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#EC4899',
+                        'board-bg': '#1F2937',
+                        'cell-bg': '#111827',
+                        'cell-border': '#374151',
+                        'psychic': '#A78BFA',
+                        'dragon': '#6366F1',
+                        'flying': '#60A5FA',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        /* 裂空座和代欧奇希斯的血量条特殊样式 */
+.vertical-health-container {
+    position: absolute;
+    z-index: 15;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+
+/* 纵向血量条背景 */
+.vertical-health-bar-bg {
+    position: relative;
+    width: 100%;
+    height: calc(100% - 14px); /* 减去文本高度 */
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 0;
+    overflow: hidden;
+}
+
+/* 黑色粒子效果 */
+.particle {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background-color: #000000; /* 粒子内部黑色 */
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 60;
+    box-shadow: 
+        0 0 3px rgba(0, 255, 100, 0.8),
+        0 0 6px rgba(0, 255, 100, 0.6),
+        0 0 9px rgba(0, 255, 100, 0.4); /* 粒子被绿光包裹 */
+}
+
+@keyframes particle-explosion {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.5);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(0);
+        opacity: 0;
+    }
+}
+
+.particle-exploding {
+    animation: particle-explosion 0.8s ease-out forwards;
+}
+
+/* 纵向血量条 */
+.vertical-health-bar {
+    transition: height 0.3s ease-in-out;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    border-radius: 0;
+}
+
+/* 满血状态 - 绿色 */
+.vertical-health-bar.health-full {
+    background: linear-gradient(to top, #4CAF50, #00f341);
+}
+
+/* 半血状态 - 黄色 */
+.vertical-health-bar.health-half {
+    background: linear-gradient(to top, #FFC107, #FFFF00);
+}
+
+/* 危险状态 - 红色 */
+.vertical-health-bar.health-low {
+    background: linear-gradient(to top, #F44336, #FF0000);
+}
+
+/* 纵向血量条下方的数值 */
+.vertical-health-value {
+    position: relative;
+    top:10%;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    font-size: clamp(8px, 1.5vw, 10px);
+    text-align: center;
+    width: 100%;
+    height: 14px;
+    line-height: 14px;
+}
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .piece-shadow {
+                filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
+            }
+            .health-full {
+                background-color: theme('colors.green-500');
+            }
+            .health-half {
+                background-color: theme('colors.yellow-500');
+            }
+            .health-low {
+                background-color: theme('colors.red-500');
+            }
+            .vertical-health-bar-bg {
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.3);
+                position: relative;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+            }
+            .vertical-health-bar {
+                width: 100%;
+                transition: height 0.3s ease;
+            }
+            .vertical-health-value {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: 10px;
+                font-weight: bold;
+                text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+            }
+            .attack-container {
+                position: relative;
+                width: 18px;
+                height: 18px;
+            }
+            /* 自定义格子边框颜色 */
+            .custom-cell-border {
+             border-color:rgba(255, 255, 255, 0.3); /* 替换为您想要的颜色代码 */
+}
+
+            /* 裂空座呼吸式绿光动画 */
+.breathing-green {
+    animation: breathing-green-animation 2s infinite ease-in-out;
+}
+
+@keyframes breathing-green-animation {
+    0%, 100% {
+        background-color: rgba(52, 211, 153, 0.3);
+        box-shadow: 0 0 5px rgba(52, 211, 153, 0.5);
+    }
+    50% {
+        background-color: rgba(52, 211, 153, 0.7);
+        box-shadow: 0 0 20px rgba(52, 211, 153, 0.9);
+    }
+}
+
+/* 裂空座旋转动画 */
+@keyframes rayquaza-spin {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+    25% {
+        transform: rotate(15deg) scale(1.05);
+    }
+    75% {
+        transform: rotate(-15deg) scale(1.05);
+    }
+    100% {
+        transform: rotate(0deg) scale(1);
+    }
+}
+
+.rayquaza-spinning {
+    animation: rayquaza-spin 1s infinite ease-in-out;
+}
+
+.pixel-dragon {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background-color: #000000; /* 内部黑色 */
+    border-radius: 50%;
+    z-index: 50;
+    pointer-events: none;
+    box-shadow: 
+        0 0 10px rgba(255, 238, 0, 0.8),
+        0 0 20px rgba(234, 168, 0, 0.6),
+        0 0 30px rgba(228, 190, 1, 0.4),
+        0 0 40px rgba(238, 219, 0, 0.2); /* 多层发散绿光效果 */
+    border: none; /* 移除边框 */
+}
+
+@keyframes dragon-attack {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.8;
+        box-shadow: 
+            0 0 10px rgba(255, 0, 0, 0.8),
+            0 0 20px rgba(255, 0, 0, 0.6),
+            0 0 30px rgba(255, 0, 0, 0.4),
+            0 0 40px rgba(255, 0, 0, 0.2);
+    }
+    25% {
+        transform: scale(1.5);
+        opacity: 1;
+        box-shadow: 
+            0 0 15px rgb(255, 200, 0),
+            0 0 30px rgba(255, 200, 0.8),
+            0 0 50px rgba(255, 200,0.6),
+            0 0 70px rgba(255, 200, 0.4);
+    }
+    50% {
+        transform: scale(2);
+        opacity: 0.9;
+        box-shadow: 
+            0 0 20px rgb(255, 247, 0),
+            0 0 40px rgba(255, 247,  0.8),
+            0 0 60px rgba(255, 247,  0.6),
+            0 0 80px rgba(255, 247, 0.4);
+    }
+    75% {
+        transform: scale(1.5);
+        opacity: 0.8;
+        box-shadow: 
+            0 0 15px rgba(0, 255, 100, 1),
+            0 0 30px rgba(0, 255, 100, 0.8),
+            0 0 50px rgba(0, 255, 100, 0.6),
+            0 0 70px rgba(0, 255, 100, 0.4);
+    }
+    100% {
+        transform: scale(0.5);
+        opacity: 0;
+        box-shadow: 
+            0 0 5px rgba(255, 0, 0, 0.4),
+            0 0 10px rgba(255, 0, 0, 0.3),
+            0 0 15px rgba(255, 0, 0, 0.2),
+            0 0 20px rgba(255, 0, 0, 0.1);
+    }
+}
+
+.dragon-hit {
+    animation: dragon-attack 0.8s ease-out forwards;
+}
+
+            .attack-circle {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                top: 30%;
+                background-color: rgba(255, 7, 7, 0.8);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .attack-value {
+                position: absolute;
+                top: 70%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: 10px;
+                font-weight: bold;
+            }
+            .type-icon {
+                width: 18px;
+                height: 18px;
+            }
+        }
+        /* 红色激光粒子效果 */
+.red-laser-particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: radial-gradient(circle, rgba(244, 67, 54, 0.9) 80%, rgba(213, 0, 0, 0.7) 70%, rgba(255, 183, 0, 0.5)40%);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(244, 67, 54, 0.9);
+    pointer-events: none;
+    z-index: 30;
+}
+    </style>
+    
+    <style>
+        /* 全局样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+     
+        /* 恢复body样式使棋盘能够正确居中 */
+        body {
+            background-color: #0F172A;
+            color: #F9FAFB;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+     
+        /* 棋盘样式 - 调整宽高比例 */
+        #game-board {
+            width: 90vmin;
+            height: 90vmin;
+            max-width: 2000px;
+            max-height: 80vh;
+            background-color: rgba(124, 124, 124, 0.1);
+            position: relative;
+            border: 2px solid #374151;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+     
+        /* 棋盘容器 - 居中显示 */
+        .board-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 20px;
+        }
+     
+        /* 星空视频背景样式 */
+        .starry-sky-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            object-fit: cover;
+            opacity: 0.8;
+        }
+        
+        /* 棋盘容器 - 居中显示 */
+        .board-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 20px;
+        }
+        /* 代欧奇希斯蓝红色渐变呼吸动画 */
+.breathing-red-blue {
+    animation: breathing-red-blue-animation 3s infinite ease-in-out;
+}
+
+@keyframes breathing-red-blue-animation {
+    0% {
+        background-color: rgba(59, 130, 246, 0.3);
+        box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    }
+    20% {
+        background-color: rgba(99, 102, 241, 0.4);
+        box-shadow: 0 0 8px rgba(99, 102, 241, 0.6);
+    }
+    40% {
+        background-color: rgba(147, 51, 234, 0.5);
+        box-shadow: 0 0 12px rgba(147, 51, 234, 0.7);
+    }
+    60% {
+        background-color: rgba(199, 21, 133, 0.6);
+        box-shadow: 0 0 16px rgba(199, 21, 133, 0.8);
+    }
+    80% {
+        background-color: rgba(225, 29, 72, 0.5);
+        box-shadow: 0 0 12px rgba(225, 29, 72, 0.7);
+    }
+    100% {
+        background-color: rgba(59, 130, 246, 0.3);
+        box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    }
+}
+        /* 棋盘样式 - 占满中间区域 */
+        #game-board {
+            width: 180vmin;
+            height: 100vmin;
+            max-width: 2000px;
+            max-height: 600px;
+            background-color: rgba(124, 124, 124, 0.1);
+            position: relative;
+            border: 2px solid #374151;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        /* 格子样式 */
+        .cell {
+            background-color: rgba(115, 255, 178, 0.2);
+            transition: background-color 0.2s ease;
+        }
+        
+        /* 格子信息位置 */
+        .cell-corner-info {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        /* 棋子样式 */
+        .piece {
+            position: absolute;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            z-index: 20;
+            transition: transform 0.2s ease, filter 0.2s ease;
+        }
+        .piece:hover {
+            transform: scale(1.05);
+        }
+        .piece[data-player="blue"] {
+            border: 2px solid theme('colors.primary');
+        }
+        .piece[data-player="red"] {
+            border: 2px solid theme('colors.secondary');
+        }
+        .text-custom-green {
+    color: #00ff1a !important;
+}
+     
+        /* 游戏信息和控制区域 */
+        .game-info {
+            position: relative;
+            text-align: center;
+            z-index: 30;
+            margin-top: 20px;
+        }
+        
+        .status-bar {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 30;
+            margin-bottom: 20px;
+        }
+/* 代欧奇希斯红色激光攻击特效 */
+.deoxys-laser {
+    position: absolute;
+    background: linear-gradient(to right, 
+        rgba(0, 0, 0, 0.8) 0%, 
+        rgba(244, 67, 54, 1) 10%, 
+        rgba(244, 67, 54, 1) 50%, 
+        rgba(244, 67, 54, 1) 90%, 
+        rgba(0, 0, 0, 0.8) 100%);
+    border-radius: 50%/50%;
+    filter: blur(2px);
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: all 0.5s ease;
+    z-index: 25;
+    pointer-events: none;
+}
+
+.deoxys-laser.active {
+    opacity: 1;
+    transform: scaleX(1);
+    box-shadow: 0 0 20px rgba(244, 67, 54, 0.8), 
+                0 0 40px rgba(244, 67, 54, 0.6),
+                0 0 60px rgba(244, 67, 54, 0.4);
+}
+
+/* 红色激光粒子效果 */
+.red-laser-particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background-color: #f44336;
+    border-radius: 50%;
+    opacity: 0;
+    box-shadow: 0 0 8px #f44336;
+}
+
+.red-laser-particle.active {
+    opacity: 1;
+    animation: red-laser-explode 1s ease-out forwards;
+}
+
+@keyframes red-laser-explode {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+}
+    </style>
+</head>
+<body>
+    <!-- 星空视频背景 -->
+    <video class="starry-sky-video" autoplay loop playsinline>
+        <source src="video/星空.mp4" type="video/mp4">
+        您的浏览器不支持HTML5视频标签。
+    </video>
+
+    <!-- 棋盘容器 - 居中显示 -->
+    <div class="board-container">
+        <!-- 棋盘区域 -->
+        <div id="game-board" class="rounded-lg shadow-xl"></div>
+    </div>
+    
+    <!-- 游戏状态信息 -->
+    <div class="status-bar">
+        <div id="current-player" class="text-xl font-bold text-primary">当前回合：裂空座</div>
+        <div class="text-white text-sm mx-4 flex items-center">
+            待命状态下：点击【裂空座】使用【龙之舞】，点击【代欧奇希斯】使用【形态重组】
+        </div>
+        <div class="flex gap-4">
+            <button id="restart-button" class="bg-primary hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                重新开始
+            </button>
+            <button id="back-to-home" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                返回主页
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // 为返回主页按钮添加点击事件
+        document.getElementById('back-to-home').addEventListener('click', function() {
+            window.location.href = 'index.html';
+        });
+        
+        // 属性克制表
+        const typeChart = {
+            psychic: {
+                strong: ['fighting', 'poison'],
+                weak: ['steel', 'psychic'],
+                immune: ['dark']
+            },
+            dragon: {
+                strong: ['dragon'],
+                weak: ['steel'],
+                immune: ['fairy']
+            },
+            flying: {
+                strong: ['fighting', 'bug', 'grass'],
+                weak: ['rock', 'steel', 'electric'],
+                immune: []
+            }
+        };
+        
+        // 游戏状态 - 恢复为主网页的棋盘大小
+        const gameState = {
+            boardSize: { x: 9, y: 9 }, // 恢复为主网页的棋盘大小（9x12）
+            currentPlayer: 'blue', // 当前玩家
+            selectedPiece: null, // 选中的棋子
+            pieces: [], // 所有棋子
+            remainingMoves: 2, // 剩余移动次数
+            selectedPieces: {
+                blue: [],
+                red: []
+            },
+            devouredPieces: [] // 被吞噬的棋子
+        };
+        
+        // 播放音效函数
+        function playSound(soundFile) {
+            try {
+                const sound = new Audio(soundFile);
+                sound.volume = 0.5; // 设置音量（0-1之间）
+                sound.play().catch(error => {
+                    console.log('音效播放失败:', error);
+                });
+            } catch (error) {
+                console.log('创建音效对象失败:', error);
+            }
+        }
+        
+        // 初始化DOM引用
+        const gameBoard = document.getElementById('game-board');
+        const currentPlayerDisplay = document.getElementById('current-player');
+        const restartButton = document.getElementById('restart-button');
+        
+        // 超级裂空座和代欧奇希斯的数据
+        const demoPokemonData = {
+            rayquaza_mega: {
+                id: 'rayquaza_mega',
+                name: '超级裂空座',
+                hp: 7,
+                atk: 3.5,
+                move: 2,
+                type: ['dragon', 'flying'],
+                typeName: ['龙', '飞行'],
+                image: 'ai-pokemon/裂空座.gif'
+            },
+            deoxys: {
+                id: 'deoxys',
+                name: '代欧奇希斯',
+                hp:3,
+                atk:3.5,
+                move: 3,
+                type: 'psychic',
+                typeName: '超能',
+                image: 'ai-pokemon/代欧奇希斯.gif'
+            },
+                deoxys_atk: {
+                id: 'deoxys_atk',
+                name: '代欧奇希斯（攻击）',
+                hp:3,
+                atk:4.5,
+                move: 3,
+                type: 'psychic',
+                typeName: '超能',
+                image: 'ai-pokemon/代欧奇希斯（攻击）.gif'
+            },
+            deoxys_def: {
+                id: 'deoxys_def',
+                name: '代欧奇希斯（防御）',
+                hp:12,
+                atk:1.5,
+                move: 2,
+                type: 'psychic',
+                typeName: '超能',
+                image: 'ai-pokemon/代欧奇希斯（防御）.gif'
+            },
+            deoxys_spe: {
+                id: 'deoxys_spe',
+                name: '代欧奇希斯（速度）',
+                hp:3,
+                atk:2,
+                move: 5,
+                type: 'psychic',
+                typeName: '超能',
+                image: 'ai-pokemon/代欧奇希斯（速度）.gif'
+            },
+        };
+        
+        // 初始位置（根据主网页棋盘大小调整）
+        const initialPositions = {
+            blue: [
+                { x: 4, y: 8 } // 裂空座 - 超级裂空座的位置
+            ],
+            red: [
+                { x: 4, y: 0 } // 代欧奇希斯 - 代欧奇希斯的位置
+            ]
+        };
+        
+        // 页面加载完成后初始化游戏
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置背景视频音量
+            const backgroundVideo = document.querySelector('.starry-sky-video');
+            if (backgroundVideo) {
+                // 设置音量（0.0到1.0之间的值，0是静音，1是最大音量）
+                backgroundVideo.volume = 0.35; // 这里设置为50%音量
+            }
+            
+            // 创建棋盘
+            createBoard();
+            
+            // 准备棋子
+            prepareDemoPieces();
+            
+            // 放置初始棋子
+            placeInitialPieces();
+            
+            // 添加重新开始按钮事件
+            restartButton.addEventListener('click', restartGame);
+            
+            // 添加窗口大小变化监听
+            window.addEventListener('resize', handleResize);
+        });
+        
+        // 处理窗口大小变化
+        function handleResize() {
+            // 重新创建棋盘以适应新的窗口大小
+            createBoard();
+            renderPieces();
+        }
+        
+        // 准备演示用棋子// 准备演示用棋子
+function prepareDemoPieces() {
+    // 裂空座 - 超级裂空座
+    gameState.selectedPieces.blue = [{
+        ...demoPokemonData.rayquaza_mega,
+        currentHp: demoPokemonData.rayquaza_mega.hp,
+        dragonDanceUsed: false // 添加标记，记录龙之舞是否已使用
+    }];
+    
+    // 代欧奇希斯 - 代欧奇希斯
+    gameState.selectedPieces.red = [{
+        ...demoPokemonData.deoxys,
+        currentHp: demoPokemonData.deoxys.hp
+    }];
+}
+        
+        // 创建棋盘
+        function createBoard() {
+            gameBoard.innerHTML = '';
+            
+            const boardWidth = gameBoard.clientWidth;
+            const boardHeight = gameBoard.clientHeight;
+            const cellWidth = boardWidth / gameState.boardSize.x;
+            const cellHeight = boardHeight / gameState.boardSize.y;
+            
+            for (let y = 0; y < gameState.boardSize.y; y++) {
+                for (let x = 0; x < gameState.boardSize.x; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell', 'absolute', 'border', 'custom-cell-border', 'cursor-pointer');
+                    
+                    const left = x * cellWidth;
+                    const top = (gameState.boardSize.y - 1 - y) * cellHeight;
+                    
+                    cell.style.width = `${cellWidth}px`;
+                    cell.style.height = `${cellHeight}px`;
+                    cell.style.left = `${left}px`;
+                    cell.style.top = `${top}px`;
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    
+                    // 创建格子右上角信息容器
+                    const cornerInfo = document.createElement('div');
+                    cornerInfo.classList.add('cell-corner-info');
+                    cornerInfo.dataset.x = x;
+                    cornerInfo.dataset.y = y;
+                    cell.appendChild(cornerInfo);
+                    
+                    cell.addEventListener('click', () => handleCellClick(x, y));
+                    
+                    gameBoard.appendChild(cell);
+                }
+            }
+        }
+        
+        // 放置初始棋子
+        function placeInitialPieces() {
+            gameState.pieces = [];
+            
+            // 裂空座棋子
+            initialPositions.blue.forEach((pos, index) => {
+                if (gameState.selectedPieces.blue[index]) {
+                    const pokemon = {...gameState.selectedPieces.blue[index]};
+                    gameState.pieces.push({
+                        ...pokemon,
+                        x: pos.x,
+                        y: pos.y,
+                        player: 'blue',
+                        id: `${pokemon.id}-blue-${index}`
+                    });
+                }
+            });
+            
+            // 代欧奇希斯棋子
+            initialPositions.red.forEach((pos, index) => {
+                if (gameState.selectedPieces.red[index]) {
+                    const pokemon = {...gameState.selectedPieces.red[index]};
+                    gameState.pieces.push({
+                        ...pokemon,
+                        x: pos.x,
+                        y: pos.y,
+                        player: 'red',
+                        id: `${pokemon.id}-red-${index}`
+                    });
+                }
+            });
+            
+            renderPieces();
+        }
+        
+        // 渲染棋子
+function renderPieces() {
+    // 先移除所有棋子
+    document.querySelectorAll('.piece').forEach(piece => piece.remove());
+    
+    // 移除所有血量条
+    document.querySelectorAll('.vertical-health-container').forEach(healthBar => healthBar.remove());
+    
+    // 清空所有格子的角落信息
+    document.querySelectorAll('.cell-corner-info').forEach(info => {
+        info.innerHTML = '';
+    });
+    
+    // 清除所有高亮
+    clearAllHighlights();
+    
+    // 获取棋盘尺寸和格子大小
+    const boardWidth = gameBoard.clientWidth;
+    const boardHeight = gameBoard.clientHeight;
+    const cellWidth = boardWidth / gameState.boardSize.x;
+    const cellHeight = boardHeight / gameState.boardSize.y;
+    const pieceSize = Math.min(cellWidth, cellHeight) * 0.8;
+    
+    // 渲染每个棋子
+    gameState.pieces.forEach(piece => {
+        const pieceEl = document.createElement('div');
+        pieceEl.classList.add('piece', 'absolute', 'flex', 'items-center', 'justify-center');
+        pieceEl.dataset.id = piece.id;
+        pieceEl.dataset.player = piece.player;
+        
+        // 计算位置 - 修正Y坐标计算方式，使其与棋盘格子一致
+        const left = piece.x * cellWidth + (cellWidth - pieceSize) / 2;
+        // 关键修复：使用与棋盘格子相同的Y坐标计算方式
+        const top = (gameState.boardSize.y - 1 - piece.y) * cellHeight + (cellHeight - pieceSize) / 2;
+        
+// 代欧奇希斯放大1.75倍
+let displaySize = pieceSize;
+if (piece.id.includes('deoxys') || piece.id.includes('rayquaza')) {
+    displaySize = pieceSize * 1.75;
+}
+        
+        pieceEl.style.width = `${displaySize}px`;
+        pieceEl.style.height = `${displaySize}px`;
+        pieceEl.style.left = `${left + (pieceSize - displaySize) / 2}px`;
+        pieceEl.style.top = `${top + (pieceSize - displaySize) / 2}px`;
+        
+        // 棋子内容 - 只包含精灵图片
+        pieceEl.innerHTML = `
+            <img src="${piece.image}" alt="${piece.name}" class="w-full h-full object-contain">
+        `;
+
+                pieceEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handlePieceClick(piece);
+                });
+
+                gameBoard.appendChild(pieceEl);
+
+                // 在格子左侧添加纵向血量条
+                const healthContainer = document.createElement('div');
+                healthContainer.classList.add('vertical-health-container');
+                healthContainer.style.left = `${piece.x * cellWidth}px`;
+                healthContainer.style.top = `${(gameState.boardSize.y - 1 - piece.y) * cellHeight}px`;
+                healthContainer.style.width = `${cellWidth * 0.10}px`;
+                healthContainer.style.height = `${cellHeight}px`;
+            
+                // 计算血量百分比并确定颜色类
+                const healthPercentage = (piece.currentHp / piece.hp) * 100;
+                let healthBarClass = 'health-full';
+                if (healthPercentage <= 25) {
+                    healthBarClass = 'health-low';
+                } else if (healthPercentage <= 50) {
+                    healthBarClass = 'health-half';
+                }
+                
+                // 对于裂空座和代欧奇希斯，确保使用绿色血量条样式
+                // 与主网页保持一致
+                if (piece.id.includes('rayquaza_mega') || piece.id.includes('deoxys')) {
+                    healthContainer.style.display = 'flex';
+                    healthContainer.style.flexDirection = 'column';
+                    healthContainer.style.justifyContent = 'space-between';
+                    
+                    // 为了保证更好的显示效果，调整血量条宽度
+                    healthContainer.style.width = `${cellWidth * 0.12}px`;
+                }
+            
+                healthContainer.innerHTML = `
+                    <div class="vertical-health-bar-bg">
+                        <div class="vertical-health-bar ${healthBarClass}" style="height: ${healthPercentage}%">
+                        </div>
+                    </div>
+                    <div class="vertical-health-value">${piece.currentHp}</div>
+                `;
+
+                gameBoard.appendChild(healthContainer);
+
+                // 在格子右上角显示属性图标和攻击力
+                const cornerInfo = document.querySelector(`.cell-corner-info[data-x="${piece.x}"][data-y="${piece.y}"]`);
+                if (cornerInfo) {
+                    // 判断是否为双属性棋子
+                    if (Array.isArray(piece.type)) {
+                        // 双属性：两个属性图标水平平行排列，攻击力显示在下方
+                        cornerInfo.innerHTML = `
+                            <div class="flex flex-col items-center gap-0">
+                                <div class="flex flex-row items-center gap-1">
+                                    <img src="type/${piece.type[0]}.png" alt="${piece.typeName[0]}系" class="type-icon w-5 h-5">
+                                    <img src="type/${piece.type[1]}.png" alt="${piece.typeName[1]}系" class="type-icon w-5 h-5">
+                                </div>
+                                <div class="attack-container mt-0 self-end">
+                                    <div class="attack-circle"></div>
+                                    <div class="attack-value">${piece.atk}</div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // 单属性：保持原来的显示方式
+                        cornerInfo.innerHTML = `
+                            <div class="flex flex-col items-center gap-1">
+                                <img src="type/${piece.type}.png" alt="${piece.typeName}系" class="type-icon w-5 h-5">
+                                <div class="attack-container">
+                                    <div class="attack-circle"></div>
+                                    <div class="attack-value">${piece.atk}</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            });
+            
+            // 确保红蓝色边框始终显示
+        updatePieceBorders();
+    
+        // 如果有选中的棋子，重新显示按钮并重新高亮选中状态和移动范围
+        if (gameState.selectedPiece && gameState.selectedPiece.player === gameState.currentPlayer) {
+            setTimeout(() => {
+                // 重新高亮选中的棋子和其可移动/攻击范围
+                highlightCell(gameState.selectedPiece.x, gameState.selectedPiece.y, 'highlight-selected');
+                highlightAvailableMoves(gameState.selectedPiece);
+                
+                // 如果选中的是代欧奇希斯，显示形态切换按钮
+                if (gameState.selectedPiece.id.includes('deoxys')) {
+                    showDeoxysFormButtons(gameState.selectedPiece);
+                }
+            }, 10); // 短暂延迟确保渲染完成
+        }
+    }
+        
+        // 处理棋子点击
+        function handlePieceClick(piece) {
+            // 检查是否是裂空座被点击，且已有选中的裂空座棋子，且龙之舞未使用过
+            if (piece.id && piece.id.includes('rayquaza_mega') && 
+                gameState.selectedPiece && 
+                gameState.selectedPiece.id && 
+                gameState.selectedPiece.id.includes('rayquaza_mega') &&
+                !piece.dragonDanceUsed) {
+                // 触发裂空座特殊效果：龙之舞
+                triggerRayquazaDragonDance(piece);
+                return;
+            }
+
+            // 原有的选中逻辑
+            if (piece.player === gameState.currentPlayer) {
+                selectPiece(piece);
+                return;
+            }
+            
+            // 原有的攻击逻辑
+            if (gameState.selectedPiece && 
+                gameState.selectedPiece.player !== piece.player && 
+                canAttack(gameState.selectedPiece, piece.x, piece.y)) {
+                attackPiece(gameState.selectedPiece, piece);
+                return;
+            }
+        }
+        
+        // 处理格子点击
+        function handleCellClick(x, y) {
+            // 查找该位置的棋子
+            const piece = gameState.pieces.find(p => p.x === x && p.y === y);
+            
+            // 如果有选中的棋子，尝试移动或攻击
+            if (gameState.selectedPiece) {
+                const selectedPiece = gameState.selectedPiece;
+                
+                // 检查是否是裂空座点击了自己，且有选中的棋子，且龙之舞未使用过
+            if (piece && piece.id && piece.id.includes('rayquaza_mega') && 
+                selectedPiece.id && selectedPiece.id.includes('rayquaza_mega') &&
+                !piece.dragonDanceUsed) {
+                // 触发裂空座特殊效果：龙之舞
+                triggerRayquazaDragonDance(piece);
+                return;
+            }
+                
+                // 如果点击的是自己的棋子，重新选择
+                if (piece && piece.player === gameState.currentPlayer) {
+                    selectPiece(piece);
+                    return;
+                }
+                
+                // 检查是否可以移动到目标位置
+                if (canMoveTo(selectedPiece, x, y)) {
+                    movePiece(selectedPiece, x, y);
+                    return;
+                }
+                
+                // 检查是否可以攻击目标位置的棋子
+                if (piece && piece.player !== gameState.currentPlayer && canAttack(selectedPiece, x, y)) {
+                    attackPiece(selectedPiece, piece);
+                    return;
+                }
+            }
+            
+            // 如果点击的是当前玩家的棋子，选中它
+            if (piece && piece.player === gameState.currentPlayer) {
+                selectPiece(piece);
+            }
+        }
+        
+        // 触发裂空座龙之舞特效
+        function triggerRayquazaDragonDance(piece) {
+            // 1. 获取裂空座DOM元素
+            const pieceEl = document.querySelector(`.piece[data-id="${piece.id}"]`);
+            if (!pieceEl) return;
+            
+            // 2. 创建并播放音效
+            const audio = new Audio('sound/龙之舞.MP3');
+            
+            // 3. 添加旋转动画
+            pieceEl.classList.add('rayquaza-spinning');
+            
+            // 4. 在裂空座上方播放龙之舞gif动画
+            const dragonDanceGif = document.createElement('img');
+            dragonDanceGif.src = 'video/龙之舞.gif';
+            dragonDanceGif.style.position = 'absolute';
+            dragonDanceGif.style.width = '120px';
+            dragonDanceGif.style.height = '120px';
+            dragonDanceGif.style.objectFit = 'contain';
+            dragonDanceGif.style.zIndex = '30'; // 确保在棋子上方显示
+            dragonDanceGif.style.pointerEvents = 'none'; // 不影响点击事件
+            
+            // 获取裂空座棋子的位置信息
+            const pieceRect = pieceEl.getBoundingClientRect();
+            const boardRect = gameBoard.getBoundingClientRect();
+            
+            // 计算gif的位置（在裂空座棋子上方居中）
+            const gifX = pieceRect.left - boardRect.left + pieceRect.width / 2 - 60 - 20; // 60是gif宽度的一半，再减20实现向左偏移
+            const gifY = pieceRect.top - boardRect.top -0; // 不向上偏移
+            
+            dragonDanceGif.style.left = `${gifX}px`;
+            dragonDanceGif.style.top = `${gifY}px`;
+            
+            // 添加到游戏面板
+            gameBoard.appendChild(dragonDanceGif);
+            
+            // 标记龙之舞已使用
+            piece.dragonDanceUsed = true;
+            
+            // 4. 监听音效播放结束事件
+            audio.addEventListener('ended', () => {
+                // 提升裂空座能力 - 修复移动范围属性名
+                piece.atk += 1;
+                piece.move += 1; // 修改这里，使用正确的属性名move
+                
+                // 显示能力提升通知
+                showAbilityBoostNotification(piece);
+                
+                // 重新渲染棋盘
+                renderPieces();
+                
+                // 减少剩余移动次数
+                gameState.remainingMoves--;
+                
+                // 检查是否需要切换回合
+                checkTurnEnd();
+                
+                // 动画播放一段时间后移除gif
+                setTimeout(() => {
+                    if (gameBoard.contains(dragonDanceGif)) {
+                        gameBoard.removeChild(dragonDanceGif);
+                    }
+                }, 1000); // 1秒后移除动画
+            });
+            
+            // 播放音效
+            audio.play().catch(error => {
+                console.error('播放音效失败:', error);
+                // 即使音效播放失败，也执行能力提升逻辑
+                piece.atk += 1;
+                piece.move += 1;
+                showAbilityBoostNotification(piece);
+                renderPieces();
+                gameState.remainingMoves--;
+                checkTurnEnd();
+                
+                // 1秒后移除动画
+                setTimeout(() => {
+                    if (gameBoard.contains(dragonDanceGif)) {
+                        gameBoard.removeChild(dragonDanceGif);
+                    }
+                }, 1000);
+            });
+        }
+        
+        // 显示能力提升通知
+        function showAbilityBoostNotification(piece) {
+            // 获取棋子位置
+            const boardRect = gameBoard.getBoundingClientRect();
+            const cellWidth = boardRect.width / gameState.boardSize.x;
+            const cellHeight = boardRect.height / gameState.boardSize.y;
+            
+            // 创建通知元素
+            const notification = document.createElement('div');
+            // 移除底部填充，将字体改为绿色
+            notification.className = 'absolute z-50 text-custom-green text-center bg-opacity-90 px-3 pt-1 pb-0 rounded-md whitespace-nowrap';
+            notification.textContent = `ATK+1，MOVE+1`;
+            
+            // 设置位置（棋子上方）
+            notification.style.left = `${piece.x * cellWidth}px`;
+            notification.style.top = `${(gameState.boardSize.y - 1 - piece.y) * cellHeight - 40}px`;
+            notification.style.width = `${cellWidth}px`;
+            
+            // 添加到棋盘
+            gameBoard.appendChild(notification);
+            
+            // 2秒后移除通知
+            setTimeout(() => {
+                // 添加淡出动画
+                notification.style.transition = 'opacity 0.5s ease';
+                notification.style.opacity = '0';
+                
+                setTimeout(() => {
+                    gameBoard.removeChild(notification);
+                }, 500);
+            }, 1000);
+        }
+        
+        // 选中棋子
+function selectPiece(piece) {
+    // 清除之前的高亮
+    clearAllHighlights();
+    
+    // 设置选中的棋子
+    gameState.selectedPiece = piece;
+    
+    // 高亮选中的棋子所在格子
+    highlightCell(piece.x, piece.y, 'highlight-selected');
+    
+    // 高亮所有可移动和攻击的格子
+    highlightAvailableMoves(piece);
+    
+    // 如果选中的是代欧奇希斯，显示形态切换按钮
+    if (piece.id.includes('deoxys') && piece.player === gameState.currentPlayer) {
+        showDeoxysFormButtons(piece);
+    }
+}
+        
+        // 显示代欧奇希斯形态切换按钮
+function showDeoxysFormButtons(piece) {
+            // 增加额外的安全检查，确保只有代欧奇希斯才能显示按钮
+            if (!piece || !piece.id || !piece.id.includes('deoxys')) {
+                removeDeoxysFormButtons();
+                return;
+            }
+            
+            // 先移除已存在的形态切换按钮
+            removeDeoxysFormButtons();
+            
+            // 获取棋盘和棋子位置信息
+            const gameBoard = document.getElementById('game-board');
+            const boardRect = gameBoard.getBoundingClientRect();
+            const pieceEl = document.querySelector(`.piece[data-id="${piece.id}"]`);
+            const pieceRect = pieceEl.getBoundingClientRect();
+            
+            // 创建按钮容器
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.id = 'deoxys-form-buttons';
+            buttonsContainer.style.position = 'absolute';
+            buttonsContainer.style.zIndex = '100';
+            buttonsContainer.style.display = 'flex';
+            buttonsContainer.style.gap = '5px';
+            
+            // 获取棋盘尺寸和格子大小（与renderPieces函数保持一致的计算方式）
+            const boardWidth = gameBoard.clientWidth;
+            const boardHeight = gameBoard.clientHeight;
+            const cellWidth = boardWidth / gameState.boardSize.x;
+            const cellHeight = boardHeight / gameState.boardSize.y;
+            
+            // 定位在棋子所在格子的中心（水平居中，垂直位置在格子底部）
+            const cellX = piece.x * cellWidth;
+            const cellY = (gameState.boardSize.y - 1 - piece.y) * cellHeight;
+            buttonsContainer.style.left = `${cellX}px`;
+            buttonsContainer.style.top = `${cellY + cellHeight - 35}px`; // 放在格子底部，距离底部35px
+            buttonsContainer.style.width = `${cellWidth}px`;
+            buttonsContainer.style.justifyContent = 'center'; // 水平居中按钮
+            
+            // 创建三个形态按钮：攻击、防御、速度
+            const formTypes = [
+                { id: 'atk', name: '攻击', type: 'deoxys_atk' },
+                { id: 'def', name: '防御', type: 'deoxys_def' },
+                { id: 'spe', name: '速度', type: 'deoxys_spe' }
+            ];
+            
+            formTypes.forEach(form => {
+                const button = document.createElement('button');
+                button.textContent = form.name;
+                button.classList.add('deoxys-form-button');
+                button.style.padding = '5px 10px';
+                button.style.border = 'none';
+                button.style.borderRadius = '4px';
+                // 根据形态设置不同颜色
+                if (form.id === 'atk') {
+                    button.style.backgroundColor = 'rgba(244, 67, 54, 0.8)'; // 红色
+                } else if (form.id === 'def') {
+                    button.style.backgroundColor = 'rgba(76, 175, 80, 0.8)'; // 蓝色
+// 绿色
+                } else if (form.id === 'spe') {
+                    button.style.backgroundColor = 'rgba(255, 147, 0, 0.8)'; // 黄色
+                    button.style.color = '#000'; // 黄色背景时使用黑色文字以确保可读性
+                }
+                button.style.color = 'white';
+                button.style.cursor = 'pointer';
+                button.style.fontSize = '10px';
+                
+                // 绑定点击事件
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    switchDeoxysForm(piece, form.type);
+                });
+                
+                buttonsContainer.appendChild(button);
+            });
+            
+            // 添加到游戏容器中
+            gameBoard.appendChild(buttonsContainer);
+        }
+        
+        // 移除代欧奇希斯形态切换按钮
+function removeDeoxysFormButtons() {
+    // 查找并移除按钮容器
+    const buttonsContainer = document.getElementById('deoxys-form-buttons');
+    if (buttonsContainer) {
+        try {
+            buttonsContainer.remove();
+        } catch (error) {
+            console.error('移除代欧奇希斯形态按钮时出错:', error);
+            // 备用方案：隐藏按钮
+            if (buttonsContainer.parentNode) {
+                buttonsContainer.style.display = 'none';
+            }
+        }
+    }
+}
+        
+// 切换代欧奇希斯形态
+function switchDeoxysForm(piece, newFormType) {
+    // 播放变形音效
+    playSound('sound/变形.MP3');
+    
+    // 查找新形态的数据
+    const newFormData = demoPokemonData[newFormType];
+    if (!newFormData) {
+        console.error('未找到代欧奇希斯形态数据:', newFormType);
+        return;
+    }
+    
+    // 计算当前血量百分比
+    const currentHpPercentage = piece.currentHp / piece.hp;
+    
+    // 计算新形态的血量（按照百分比调整）
+    const newHp = Math.max(0.1, newFormData.hp * currentHpPercentage); // 确保至少保留0.1血量
+    
+    // 更新棋子数据
+    Object.assign(piece, {
+        ...newFormData,
+        id: `${newFormType}-${piece.player}-${piece.id.split('-').pop()}`, // 保持ID唯一性
+        currentHp: newHp // 按照百分比设置新血量
+    });
+    
+    // 重新渲染棋盘
+    renderPieces();
+    
+    // 重新选中棋子并显示按钮
+    selectPiece(piece);
+    
+    // 显示切换成功信息
+    addMessage(`它的身体产生了变形与重组！切换为了${newFormData.name}形态！`);
+}
+
+// 添加消息提示函数
+function addMessage(message) {
+    // 创建消息元素
+    const messageElement = document.createElement('div');
+    messageElement.className = 'absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded z-50';
+    messageElement.textContent = message;
+    
+    // 添加到游戏面板
+    gameBoard.appendChild(messageElement);
+    
+    // 2秒后移除消息
+    setTimeout(() => {
+        messageElement.style.transition = 'opacity 0.5s ease';
+        messageElement.style.opacity = '0';
+        setTimeout(() => {
+            if (messageElement.parentNode) {
+                messageElement.parentNode.removeChild(messageElement);
+            }
+        }, 500);
+    }, 2000);
+}
+
+// 高亮格子
+function highlightCell(x, y, highlightClass) {
+    const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+    if (cell) {
+        cell.classList.add(highlightClass);
+    }
+}
+        
+// 清除所有高亮
+function clearAllHighlights() {
+    document.querySelectorAll('.cell').forEach(cell => {
+        cell.classList.remove('highlight-selected', 'highlight-move', 'highlight-attack', 'breathing-green', 'breathing-red-blue');
+    });
+    // 移除代欧奇希斯形态切换按钮
+    removeDeoxysFormButtons();
+}
+        
+        function highlightAvailableMoves(piece) {
+    // 判断是否是裂空座或代欧奇希斯
+    const isRayquaza = piece.id && piece.id.includes('rayquaza_mega');
+    const isDeoxys = piece.id && piece.id.includes('deoxys');
+    
+    // 如果是裂空座，播放心跳音效
+    if (isRayquaza) {
+        playSound('sound/心跳.MP3');
+    }
+    
+    for (let y = 0; y < gameState.boardSize.y; y++) {
+        for (let x = 0; x < gameState.boardSize.x; x++) {
+            // 检查是否可以移动到该位置
+            if (canMoveTo(piece, x, y)) {
+                if (isRayquaza) {
+                    // 裂空座使用呼吸式绿光
+                    highlightCell(x, y, 'breathing-green');
+                } else if (isDeoxys) {
+                    // 代欧奇希斯使用蓝红色渐变呼吸动画
+                    highlightCell(x, y, 'breathing-red-blue');
+                } else {
+                    // 其他宝可梦使用普通高亮
+                    highlightCell(x, y, 'highlight-move');
+                }
+            }
+            
+            // 对于裂空座，删除攻击光效
+            if (!isRayquaza) {
+                // 检查是否可以攻击该位置的棋子
+                const targetPiece = gameState.pieces.find(p => p.x === x && p.y === y);
+                if (targetPiece && targetPiece.player !== piece.player && canAttack(piece, x, y)) {
+                    highlightCell(x, y, 'highlight-attack');
+                }
+            }
+        }
+    }
+}
+        
+        // 检查是否可以移动到目标位置
+        function canMoveTo(piece, targetX, targetY) {
+            // 检查目标位置是否有棋子
+            const targetPiece = gameState.pieces.find(p => p.x === targetX && p.y === targetY);
+            if (targetPiece) {
+                return false;
+            }
+            
+            // 检查是否在移动范围内（只允许上下左右四个方向，不包括斜向）
+            const distanceX = Math.abs(targetX - piece.x);
+            const distanceY = Math.abs(targetY - piece.y);
+            
+            // 确保不是斜向移动（要么X坐标相同，要么Y坐标相同）
+            if (distanceX > 0 && distanceY > 0) {
+                return false;
+            }
+            
+            // 计算实际移动距离（不考虑河流）
+            const moveDistance = distanceX + distanceY;
+            
+            // 对于飞行属性的宝可梦，也限制为上下左右四个方向
+            const isFlying = Array.isArray(piece.type) ? piece.type.includes('flying') : piece.type === 'flying';
+            
+            return moveDistance <= piece.move && (!isFlying || true); // 对于演示版本，所有宝可梦都可以跨越任何地形
+        }
+        
+        // 检查是否可以攻击目标位置的棋子
+// 检查是否可以攻击目标位置的棋子
+function canAttack(piece, targetX, targetY) {
+    const targetPiece = gameState.pieces.find(p => p.x === targetX && p.y === targetY);
+    
+    // 确保目标位置有敌方棋子
+    if (!targetPiece || targetPiece.player === piece.player) {
+        return false;
+    }
+    
+    // 检查是否是裂空座攻击代欧奇希斯，或者代欧奇希斯攻击裂空座
+    const isRayquaza = piece.id && piece.id.includes('rayquaza_mega');
+    const isDeoxysTarget = targetPiece.id && targetPiece.id.includes('deoxys');
+    const isDeoxysAttacker = piece.id && piece.id.includes('deoxys');
+    const isRayquazaTarget = targetPiece.id && targetPiece.id.includes('rayquaza_mega');
+    
+    // 如果是裂空座与代欧奇希斯之间的攻击，取消距离限制，只要在自身移动范围内即可攻击
+    if ((isRayquaza && isDeoxysTarget) || (isDeoxysAttacker && isRayquazaTarget)) {
+        // 使用棋子的移动范围作为攻击范围
+        const distanceX = Math.abs(targetX - piece.x);
+        const distanceY = Math.abs(targetY - piece.y);
+        
+        // 对于飞行属性的宝可梦，使用曼哈顿距离判断
+        const isFlying = Array.isArray(piece.type) ? piece.type.includes('flying') : piece.type === 'flying';
+        const moveDistance = distanceX + distanceY;
+        
+        // 对于裂空座（飞行属性），可以使用曼哈顿距离
+        // 对于代欧奇希斯（非飞行属性），也使用曼哈顿距离，但限制在其移动范围内
+        return moveDistance <= piece.move;
+    }
+    
+    // 其他情况下，保持原有规则：攻击范围是相邻格子
+    const distanceX = Math.abs(targetX - piece.x);
+    const distanceY = Math.abs(targetY - piece.y);
+    
+    return (distanceX <= 1 && distanceY <= 1) && !(distanceX === 0 && distanceY === 0);
+}
+        
+        // 移动棋子
+        function movePiece(piece, targetX, targetY) {
+            // 保存原位置
+            const oldX = piece.x;
+            const oldY = piece.y;
+            
+            // 更新棋子位置
+            piece.x = targetX;
+            piece.y = targetY;
+            
+            // 重新渲染棋盘
+            renderPieces();
+            
+            // 减少剩余移动次数
+            gameState.remainingMoves--;
+            
+            // 检查是否需要切换回合
+            checkTurnEnd();
+            
+            // 如果移动的是代欧奇希斯并且是选中状态，重新显示按钮
+            if (gameState.selectedPiece && gameState.selectedPiece.id === piece.id) {
+                setTimeout(() => {
+                    showDeoxysFormButtons(gameState.selectedPiece);
+                }, 10);
+            }
+        }
+        
+        // 攻击棋子
+       // 攻击棋子
+function attackPiece(attacker, defender) {
+    // 检查是否是裂空座攻击
+    const isRayquaza = attacker.id && attacker.id.includes('rayquaza_mega');
+    
+    // 检查是否是代欧奇希斯攻击裂空座
+    const isDeoxysAttackingRayquaza = attacker.id && attacker.id.includes('deoxys') && 
+                                     defender.id && defender.id.includes('rayquaza');
+    
+    if (isRayquaza) {
+        // 获取裂空座和目标棋子的DOM元素
+        const attackerEl = document.querySelector(`.piece[data-id="${attacker.id}"]`);
+        const defenderEl = document.querySelector(`.piece[data-id="${defender.id}"]`);
+        
+        // 隐藏裂空座
+        if (attackerEl) {
+            attackerEl.style.opacity = '0';
+        }
+        
+        // 创建画龙点睛gif元素（带绿色滤镜）
+        const dracoMeteorGif = document.createElement('div');
+        dracoMeteorGif.classList.add('draco-meteor-effect');
+        dracoMeteorGif.style.position = 'absolute';
+        dracoMeteorGif.style.width = '100px'; // 调整大小以匹配裂空座
+        dracoMeteorGif.style.height = '100px';
+        dracoMeteorGif.style.zIndex = '30';
+        
+        // 设置gif位置（裂空座位置）
+        const attackerRect = attackerEl.getBoundingClientRect();
+        const boardRect = gameBoard.getBoundingClientRect();
+        const gifX = attackerRect.left - boardRect.left;
+        const gifY = attackerRect.top - boardRect.top;
+        
+        dracoMeteorGif.style.left = `${gifX}px`;
+        dracoMeteorGif.style.top = `${gifY}px`;
+        
+        // 添加gif图片
+        const img = document.createElement('img');
+        img.src = 'video/画龙点睛.gif'; // 使用您提供的gif文件
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.borderRadius = '0.5rem';
+        dracoMeteorGif.appendChild(img);
+        
+        gameBoard.appendChild(dracoMeteorGif);
+        // 修改playSound函数，使其支持播放不同音效
+const playSound = (soundFile = 'sound/画龙点睛.MP3') => {
+    try {
+        const sound = new Audio(soundFile);
+        sound.volume = 0.5; // 设置音量（0-1之间）
+        sound.play().catch(error => {
+            console.log('音效播放失败:', error);
+        });
+    } catch (error) {
+        console.log('创建音效对象失败:', error);
+    }
+};
+
+// 尝试播放音效（考虑到浏览器的自动播放限制）
+
+playSound();
+        
+        // 播放gif一段时间后继续攻击流程
+        setTimeout(() => {
+            // 移除gif元素
+            gameBoard.removeChild(dracoMeteorGif);
+            
+            // 创建像素龙特效元素（绿色球体攻击）
+            const pixelDragon = document.createElement('div');
+            pixelDragon.classList.add('pixel-dragon');
+            
+            // 设置像素龙起始位置（裂空座的中心位置）
+            const startX = attackerRect.left - boardRect.left + attackerRect.width / 2 - 20;
+            const startY = attackerRect.top - boardRect.top + attackerRect.height / 2 - 20;
+            
+            pixelDragon.style.left = `${startX}px`;
+            pixelDragon.style.top = `${startY}px`;
+            
+            gameBoard.appendChild(pixelDragon);
+            
+            // 获取目标位置（代欧奇希斯的中心位置）
+            const defenderRect = defenderEl.getBoundingClientRect();
+            const endX = defenderRect.left - boardRect.left + defenderRect.width / 2 - 20;
+            const endY = defenderRect.top - boardRect.top + defenderRect.height / 2 - 20;
+            
+            // 让像素龙移动到目标位置
+            setTimeout(() => {
+                pixelDragon.style.transition = 'left 0.5s ease, top 0.5s ease';
+                pixelDragon.style.left = `${endX}px`;
+                pixelDragon.style.top = `${endY}px`;
+                
+                // 像素龙到达目标后，执行撞击动画
+                setTimeout(() => {
+                    pixelDragon.classList.add('dragon-hit');
+                    
+                    // 撞击动画结束后，创建爆炸粒子效果
+                    setTimeout(() => {
+                        // 创建粒子爆炸效果
+                        createParticleExplosion(endX + 20, endY + 20); // 中心点位置
+                        
+                        // 移除像素龙
+                        gameBoard.removeChild(pixelDragon);
+                        
+                        // 显示回裂空座
+                        if (attackerEl) {
+                            attackerEl.style.opacity = '1';
+                        }
+                        
+                        // 执行攻击逻辑
+                        performAttack(attacker, defender);
+                    }, 800);
+                }, 500);
+            }, 50);
+        }, 1000); // gif显示1秒后继续攻击流程
+    } else if (isDeoxysAttackingRayquaza) {
+        // 代欧奇希斯攻击裂空座时的红色激光特效
+        // 获取游戏面板尺寸和格子大小
+        const boardWidth = gameBoard.clientWidth;
+        const boardHeight = gameBoard.clientHeight;
+        const cellWidth = boardWidth / gameState.boardSize.x;
+        const cellHeight = boardHeight / gameState.boardSize.y;
+        
+        // 计算代欧奇希斯所在格子的中心坐标
+        const attackerCenterX = attacker.x * cellWidth + cellWidth / 2;
+        const attackerCenterY = (gameState.boardSize.y - 1 - attacker.y) * cellHeight + cellHeight / 2;
+        
+        // 计算裂空座所在格子的中心坐标
+        const defenderCenterX = defender.x * cellWidth + cellWidth / 2;
+        const defenderCenterY = (gameState.boardSize.y - 1 - defender.y) * cellHeight + cellHeight / 2;
+        
+        // 创建激光容器
+        const laserContainer = document.createElement('div');
+        laserContainer.classList.add('deoxys-laser-container');
+        gameBoard.appendChild(laserContainer);
+        
+        // 创建激光元素
+        const laser = document.createElement('div');
+        laser.classList.add('deoxys-laser');
+        
+        // 计算激光的角度、长度和位置
+        const dx = defenderCenterX - attackerCenterX;
+        const dy = defenderCenterY - attackerCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        
+        // 设置激光的样式 - 修复位置错乱问题
+        laser.style.width = `${distance}px`;
+        laser.style.height = '20px';
+        laser.style.left = `${attackerCenterX}px`;
+        laser.style.top = `${attackerCenterY - 10}px`;
+        // 关键点：设置旋转中心点为左侧中心点，只保留rotate变换
+        laser.style.transformOrigin = '0 50%';
+        laser.style.transform = `rotate(${angle}deg)`;
+        
+        // 添加到容器
+        laserContainer.appendChild(laser);
+        
+        // 播放精神突进音效
+        playSound('sound/精神突进.mp3');
+        
+        // 触发激光动画
+        setTimeout(() => {
+            laser.classList.add('active');
+            
+            // 激光动画结束后，执行攻击逻辑
+            setTimeout(() => {
+                // 创建爆炸粒子效果
+            createRedLaserExplosion(defenderCenterX, defenderCenterY);
+                
+                // 移除激光元素
+                gameBoard.removeChild(laserContainer);
+                
+                // 执行攻击逻辑
+                performAttack(attacker, defender);
+            }, 800);
+        }, 50);
+    } else {
+        // 普通攻击逻辑
+        performAttack(attacker, defender);
+    }
+}
+
+// 创建粒子爆炸效果
+function createParticleExplosion(x, y) {
+    const particleCount = 15; // 粒子数量
+    
+    for (let i = 0; i < particleCount; i++) {
+        // 创建粒子元素
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        
+        // 设置初始位置（爆炸中心）
+        particle.style.left = `${x}px`;
+        particle.style.top = `${y}px`;
+        
+        // 随机生成粒子的移动方向和距离
+        const angle = Math.random() * Math.PI * 2; // 随机角度
+        const speed = Math.random() * 20 + 10; // 随机速度（10-30px）
+        const moveX = Math.cos(angle) * speed;
+        const moveY = Math.sin(angle) * speed;
+        
+        // 添加到游戏面板
+        gameBoard.appendChild(particle);
+        
+        // 触发爆炸动画
+        setTimeout(() => {
+            particle.classList.add('particle-exploding');
+            
+            // 设置粒子移动
+            particle.style.transition = 'transform 0.8s ease-out';
+            particle.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            
+            // 动画结束后移除粒子
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    gameBoard.removeChild(particle);
+                }
+            }, 800);
+        }, 10);
+    }
+}
+
+// 创建红色激光爆炸效果
+function createRedLaserExplosion(x, y) {
+    const particleCount = 15;
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('red-laser-particle');
+        
+        // 设置初始位置
+        particle.style.left = `${x}px`;
+        particle.style.top = `${y}px`;
+        
+        // 随机生成粒子的移动方向和距离
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 20 + 10;
+        const moveX = Math.cos(angle) * speed;
+        const moveY = Math.sin(angle) * speed;
+        
+        // 添加到游戏面板
+        gameBoard.appendChild(particle);
+        
+        // 触发爆炸动画
+        setTimeout(() => {
+            particle.style.transition = 'transform 0.8s ease-out, opacity 0.8s ease-out';
+            particle.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            particle.style.opacity = '0';
+            
+            // 动画结束后移除粒子
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    gameBoard.removeChild(particle);
+                }
+            }, 800);
+        }, 10);
+    }
+}
+        
+        // 实际执行攻击逻辑的函数
+        function performAttack(attacker, defender) {
+            // 计算伤害（考虑属性克制）
+            const damage = calculateDamage(attacker, defender);
+            
+            // 应用伤害
+            defender.currentHp -= damage;
+            
+            // 检查防御方是否被击败
+            if (defender.currentHp <= 0) {
+                // 移除被击败的棋子
+                const index = gameState.pieces.findIndex(p => p.id === defender.id);
+                if (index !== -1) {
+                    gameState.pieces.splice(index, 1);
+                }
+                
+                // 检查被击败的是否是裂空座或代欧奇希斯
+                const isRayquazaOrDeoxys = defender.id && (defender.id.includes('rayquaza') || defender.id.includes('deoxys'));
+                if (isRayquazaOrDeoxys) {
+                    // 显示旁白文本
+                    showNarration('它赢也好，我赢也好，裂空座和它早已一并消失了...', 6000);
+                }
+            }
+            
+            // 重新渲染棋盘
+            renderPieces();
+            
+            // 减少剩余移动次数
+            gameState.remainingMoves--;
+            
+            // 检查是否需要切换回合
+            checkTurnEnd();
+        }
+        
+        // 计算伤害
+        function calculateDamage(attacker, defender) {
+            let damage = attacker.atk;
+            
+            // 处理攻击者的属性
+            const attackerTypes = Array.isArray(attacker.type) ? attacker.type : [attacker.type];
+            const defenderTypes = Array.isArray(defender.type) ? defender.type : [defender.type];
+            
+            // 计算属性克制
+            let typeMultiplier = 1;
+            
+            attackerTypes.forEach(attackerType => {
+                defenderTypes.forEach(defenderType => {
+                    if (typeChart[attackerType] && typeChart[attackerType].strong.includes(defenderType)) {
+                        typeMultiplier *= 1.5;
+                    } else if (typeChart[attackerType] && typeChart[attackerType].weak.includes(defenderType)) {
+                        typeMultiplier *= 0.5;
+                    } else if (typeChart[attackerType] && typeChart[attackerType].immune.includes(defenderType)) {
+                        typeMultiplier = 0;
+                    }
+                });
+            });
+            
+            // 应用属性克制倍数
+            damage *= typeMultiplier;
+            
+            // 向下取整，但至少为1点伤害（除非免疫）
+            if (typeMultiplier === 0) {
+                return 0;
+            }
+            
+            return Math.max(1, Math.floor(damage));
+        }
+        
+        // 检查回合是否结束
+        function checkTurnEnd() {
+            // 如果没有剩余移动次数，切换回合
+            if (gameState.remainingMoves <= 0) {
+                switchPlayer();
+            }
+        }
+        
+        // 切换玩家
+        function switchPlayer() {
+            gameState.currentPlayer = gameState.currentPlayer === 'blue' ? 'red' : 'blue';
+            gameState.remainingMoves = 2;
+            gameState.selectedPiece = null;
+            
+            // 更新当前玩家显示
+            currentPlayerDisplay.textContent = `当前回合：${gameState.currentPlayer === 'blue' ? '裂空座' : '代欧奇希斯'}`;
+            currentPlayerDisplay.className = `text-xl font-bold ${gameState.currentPlayer === 'blue' ? 'text-primary' : 'text-secondary'}`;
+            
+            // 清除所有高亮
+            clearAllHighlights();
+            
+            // 重新渲染棋盘
+            renderPieces();
+        }
+        
+        // 更新棋子边框
+        function updatePieceBorders() {
+            document.querySelectorAll('.piece').forEach(pieceEl => {
+                const player = pieceEl.dataset.player;
+                pieceEl.classList.remove('border-primary', 'border-secondary');
+                pieceEl.classList.add(player === 'blue' ? 'border-primary' : 'border-secondary');
+            });
+        }
+        
+        // 重新开始游戏
+        function restartGame() {
+            // 重置游戏状态
+            gameState.currentPlayer = 'blue';
+            gameState.selectedPiece = null;
+            gameState.remainingMoves = 2;
+            
+            // 重新放置棋子
+            placeInitialPieces();
+            
+            // 更新当前玩家显示
+            currentPlayerDisplay.textContent = '当前回合：裂空座';
+            currentPlayerDisplay.className = 'text-xl font-bold text-primary';
+            
+            // 清除所有高亮
+            clearAllHighlights();
+        }
+        
+    </script>
+    
+    <!-- 引入旁白系统 -->
+    <script src="裂空的陨落（旁白）.js"></script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝可梦特殊战棋卡册</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B8BFC',
+                        secondary: '#FF5252',
+                        neutral: '#1E293B',
+                        board: '#8B4513',
+                        highlight: '#4CAF50',
+                        highlightStrong: '#388E3C',
+                        highlightLight: '#81C784',
+                        swap: '#9C27B0',
+                        normal: '#A8A878',
+                        fire: '#F08030',
+                        water: '#6890F0',
+                        electric: '#F8D030',
+                        grass: '#78C850',
+                        ice: '#98D8D8',
+                        fighting: '#C03028',
+                        poison: '#A040A0',
+                        ground: '#E0C068',
+                        flying: '#A890F0',
+                        psychic: '#F85888',
+                        bug: '#A8B820',
+                        rock: '#B8A038',
+                        ghost: '#705898',
+                        dragon: '#7038F8',
+                        dark: '#705848',
+                        steel: '#B8B8D0',
+                        fairy: '#EE99AC',
+                    },
+                    fontFamily: {
+                        pokemon: ['"Press Start 2P"', 'cursive', 'sans-serif'],
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    },
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .type-icon {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white font-sans min-h-screen">
+    <!-- 顶部导航 -->
+    <header class="bg-neutral shadow-lg py-4 px-6">
+        <div class="flex items-center justify-between">
+            <button onclick="window.location.href='index.html'" class="text-gray-300 hover:text-white flex items-center text-sm transition-colors">
+                <i class="fa fa-arrow-left mr-1"></i> 返回主页
+            </button>
+        </div>
+        <div class="flex items-center justify-center space-x-3">
+            <img src="background/logo.png" alt="宝可梦象棋Logo" class="w-10 h-10 rounded-full">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                宝可梦战棋卡册
+            </h1>
+        </div>
+        <div class="w-24"></div> <!-- 为了平衡布局的空元素 -->
+    </div>
+</header>
+
+    <!-- 主内容区域 -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="text-center mb-8">
+            <p <span class="text-blue-400">三费（blue）</span> <span class="text-purple-400">四费（purple）</span> ，<span
+                    class="text-yellow-400">五费（yellow）</span>，<span class="text-red-400">六费（red）</span></p>
+        </div>
+
+        <!-- 卡片展示区域 -->
+        <div id="pokemon-collection"
+            class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <!-- 卡片将通过JavaScript动态生成 -->
+        </div>
+    </main>
+
+    <!-- 底部信息 -->
+    <footer class="bg-neutral py-4 px-6 mt-12">
+        <div class="text-center text-gray-400 text-sm">
+            宝可梦战棋卡册 &copy; 2025 | 关于宝可梦战棋的特殊棋子收集
+        </div>
+    </footer>
+
+    <script>
+        // 宝可梦边框颜色定义
+        const pokemonBorderStyles = {
+            white: {
+                border: '2px solidrgb(186, 186, 186)',
+                boxShadow: '0 0 8px rgba(94, 94, 94, 0.4)',
+                borderRadius: '6px'
+            },
+
+            // 绿色边框 - 草系/恢复类宝可梦
+            green: {
+                border: '2px solid #4CAF50',
+                boxShadow: '0 0 10px rgba(76, 175, 80, 0.5)',
+                borderRadius: '6px'
+            },
+
+            // 蓝色边框 - 水系/防御类宝可梦
+            blue: {
+                border: '2px solid #2196F3',
+                boxShadow: '0 0 10px rgba(33, 150, 243, 0.5)',
+                borderRadius: '6px'
+            },
+
+            // 紫色边框 - 恶系/特殊能力宝可梦（如恶食大王）
+            purple: {
+                border: '3px solid #8B5FBF',
+                boxShadow: '0 0 12px rgba(139, 95, 191, 0.6)',
+                borderRadius: '8px'
+            },
+
+            // 黄色边框 - 电系/高攻击宝可梦
+            yellow: {
+                border: '2px solid #FFD700',
+                boxShadow: '0 0 10px rgba(255, 215, 0, 0.5)',
+                borderRadius: '6px'
+            },
+            red: {
+                border: '2px solid #FF3200',
+                boxShadow: '0 0 10px rgba(197, 50, 0, 0.5)',
+                borderRadius: '6px'
+            },
+
+        };
+
+        // 宝可梦介绍文本映射
+        const pokemonDescriptions = {
+            'magnezone': '把射程内的钢系精灵，向指定方向移动一格',
+            'sizor': '每回合一次，对路径上的首个敌人造成1点钢属',
+            'guzzlord': '吞噬一名己方棋子，至多获取其5点体力，能够突破血量上限',
+            'kyogre': '在周围降下雨天，水系棋子攻击+1，火系棋子攻击-1',
+            'kyogre-primal': '在棋盘降下暴雨，开辟水系区域，使场上火系伤害归零',
+            'rayquaza-mega': '消除一切天气，屏蔽飞行系精灵弱点，可以通过舞动使自己[ATK+1, MOVE+1]',
+            'deoxys': '重组身体，在[攻击][防御][速度]中切换形态，修改自身数据',
+            'deoxys-atk': '代欧奇希斯将细胞集中于脑核，最大化[进攻]能力',
+            'deoxys-def': '代欧奇希斯将细胞集中于盔甲，最大化[防御]能力',
+            'deoxys-spe': '代欧奇希斯将细胞集中于下肢，最大化[移动]能力',
+        };
+
+        // 获取宝可梦边框样式
+        function getPokemonBorderStyle(pokemonId) {
+            if (pokemonId === 'magnezone'|| pokemonId === 'scizor') {
+                return pokemonBorderStyles.blue;
+            }
+            if (pokemonId === 'guzzlord') {
+                return pokemonBorderStyles.purple;
+            }
+            if (pokemonId === 'kyogre') {
+                return pokemonBorderStyles.yellow;
+
+            }
+            if (pokemonId === 'kyogre' || pokemonId === 'kyogre-primal') {
+                return pokemonBorderStyles.red;
+            }
+            if (pokemonId === 'rayquaza-mega') {
+                return pokemonBorderStyles.red;
+            }
+            if (pokemonId === 'deoxys' || pokemonId === 'deoxys-atk', 'deoxys-def', 'deoxys-spe') {
+                return pokemonBorderStyles.red;
+            }
+            return pokemonBorderStyles.white;
+        }
+
+        // 获取宝可梦介绍文本
+        function getPokemonDescription(pokemonId) {
+            return pokemonDescriptions[pokemonId] || '';
+        }
+
+        // 宝可梦数据
+        const pokemonData = [
+            {
+                id: 'magnezone',
+                name: '自爆磁怪',
+                hp: 3.5,
+                atk: 2,
+                move: 2,
+                type: ['electric', 'steel'],
+                typeName: ['电', '钢'],
+                image: 'player-pokemon/自爆磁怪.gif'
+            },
+            {
+                id: 'scizor',
+                name: '巨钳螳螂',
+                hp: 3.5,
+                atk: 2,
+                move: 2,
+                type: ['bug', 'steel'],
+                typeName: ['虫', '钢'],
+                image: 'ai-pokemon/巨钳螳螂.gif',
+            },
+            {
+                id: 'guzzlord',
+                name: '恶食大王',
+                hp: 5,
+                atk: 2,
+                move: 2,
+                type: ['dark', 'dragon'],
+                typeName: ['恶', '龙'],
+                image: 'player-pokemon/恶食大王.gif',
+            },
+            {
+                id: 'kyogre',
+                name: '盖欧卡',
+                hp: 6,
+                atk: 2.5,
+                move: 2,
+                type: 'water',
+                typeName: '水',
+                image: 'ai-pokemon/盖欧卡.gif',
+            },
+            {
+                id: 'kyogre-primal',
+                name: '原始回归盖欧卡',
+                hp: 8,
+                atk: 3.5,
+                move: 2,
+                type: 'water',
+                typeName: '水',
+                image: 'ai-pokemon/原始回归盖欧卡.gif',
+            },
+            {
+                id: 'rayquaza-mega',
+                name: '裂空座-Mega',
+                hp: 7,
+                atk: 3.5,
+                move: 2,
+                type: ['dragon', 'flying'],
+                typeName: ['龙', '飞行'],
+                image: 'ai-pokemon/裂空座.gif'
+            },
+            {
+                id: 'deoxys',
+                name: '代欧奇希斯',
+                hp: 3,
+                atk: 3.5,
+                move: 3,
+                type: 'psychic',
+                typeName: '超能',
+                image: 'ai-pokemon/代欧奇希斯.gif'
+            },
+            {
+                id: 'deoxys-atk',
+                name: '代欧奇希斯（攻击）',
+                hp: 3,
+                atk: 4.5,
+                move: 3,
+                type: 'psychic',
+                typeName: '超能',
+                image: 'ai-pokemon/代欧奇希斯（攻击）.gif'
+            },
+            {
+                id: 'deoxys-def',
+                name: '代欧奇希斯（防御）',
+                hp: 12,
+                atk: 1.5,
+                move: 2,
+                type: 'psychic',
+                typeName: '超能',
+                image: 'ai-pokemon/代欧奇希斯（防御）.gif'
+            },
+            {
+                id: 'deoxys-spe',
+                name: '代欧奇希斯（速度）',
+                hp: 3,
+                atk: 2,
+                move: 5,
+                type: 'psychic',
+                typeName: '超能',
+                image: 'ai-pokemon/代欧奇希斯（速度）.gif'
+            },
+        ];
+
+        // 创建宝可梦卡片
+        function createPokemonCard(pokemon) {
+            const card = document.createElement('div');
+            card.className = 'card bg-gray-800 rounded-lg overflow-hidden shadow-lg';
+            card.dataset.id = pokemon.id;
+
+            // 应用边框样式
+            const style = getPokemonBorderStyle(pokemon.id);
+            card.style.border = style.border;
+            card.style.boxShadow = style.boxShadow;
+            card.style.borderRadius = style.borderRadius;
+
+            // 获取边框颜色用于特性文本
+            const borderColor = getBorderColorFromStyle(style.border);
+            const shadowColor = getShadowColorFromStyle(style.boxShadow);
+
+            card.innerHTML = `
+                <div class="relative">
+                    <img src="${pokemon.image}" alt="${pokemon.name}" class="w-full h-40 object-contain bg-gray-800 p-4">
+                    <div class="absolute top-3 right-3">
+                        ${Array.isArray(pokemon.type) ?
+                    `<div class="flex flex-row items-center gap-1">
+                                <img src="type/${pokemon.type[0]}.png" alt="${pokemon.typeName[0]}系" class="type-icon w-6 h-6">
+                                <img src="type/${pokemon.type[1]}.png" alt="${pokemon.typeName[1]}系" class="type-icon w-6 h-6">
+                            </div>` :
+                    `<img src="type/${pokemon.type}.png" alt="${pokemon.typeName}系" class="type-icon w-6 h-6">`
+                }
+                    </div>
+                </div>
+                <div class="p-4">
+                    <h3 class="text-xl font-bold mb-2 text-center">${pokemon.name}</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">体力 (HP):</span>
+                            <span class="text-green-400 font-bold">${pokemon.hp}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">攻击 (ATK):</span>
+                            <span class="text-red-400 font-bold">${pokemon.atk}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">距离 (MOVE):</span>
+                            <span class="text-yellow-400 font-bold">${pokemon.move}</span>
+                        </div>
+                    </div>
+                    ${getPokemonDescription(pokemon.id) ?
+                    `<div class="mt-3 p-2 rounded text-xs text-white border" style="background-color: ${borderColor}20; border-color: ${borderColor}; box-shadow: 0 0 8px ${shadowColor};">
+                            <i class="fa fa-info-circle mr-1"></i>${getPokemonDescription(pokemon.id)}
+                        </div>` : ''
+                }
+                </div>
+            `;
+
+            return card;
+        }
+
+        // 从边框样式中提取颜色
+        function getBorderColorFromStyle(borderStyle) {
+            const match = borderStyle.match(/solid (#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|rgb\([^)]+\)|rgba\([^)]+\))/);
+            return match ? match[1] : '#8B5FBF'; // 默认紫色
+        }
+
+        // 从阴影样式中提取颜色
+        function getShadowColorFromStyle(shadowStyle) {
+            const match = shadowStyle.match(/rgba?\([^)]+\)/);
+            return match ? match[0] : 'rgba(139, 95, 191, 0.6)'; // 默认紫色阴影
+        }
+
+        // 渲染所有宝可梦卡片
+        function renderPokemonCollection() {
+            const container = document.getElementById('pokemon-collection');
+            container.innerHTML = '';
+
+            pokemonData.forEach(pokemon => {
+                const card = createPokemonCard(pokemon);
+                container.appendChild(card);
+            });
+        }
+
+        // 页面加载完成后渲染
+        document.addEventListener('DOMContentLoaded', renderPokemonCollection);
+    </script>
+    <script src="orientation.js"></script>
+</body>
+
+</html>
