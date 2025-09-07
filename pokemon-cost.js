@@ -40,6 +40,8 @@ const pokemonBorderStyles = {
 const pokemonBorderMapping = {
     // 恶食大王 - 紫色边框
     'guzzlord': 'purple',
+    'scizor': 'blue',
+    
     
     // 您可以在这里添加其他宝可梦的边框映射
     // 'pikachu': 'yellow',
@@ -69,11 +71,51 @@ function applyBorderToPokemonCard(cardElement, pokemonId) {
     cardElement.style.transition = 'all 0.3s ease';
 }
 
+// 获取宝可梦介绍文本的边框和背景颜色
+function getPokemonDescriptionStyle(pokemonId) {
+    const borderColor = pokemonBorderMapping[pokemonId];
+    
+    const styleMap = {
+        'purple': {
+            border: 'border-purple-700',
+            bg: 'bg-purple-900/50',
+            text: 'text-purple-200'
+        },
+        'blue': {
+            border: 'border-blue-700',
+            bg: 'bg-blue-900/50',
+            text: 'text-blue-200'
+        },
+        'green': {
+            border: 'border-green-700',
+            bg: 'bg-green-900/50',
+            text: 'text-green-200'
+        },
+        'yellow': {
+            border: 'border-yellow-700',
+            bg: 'bg-yellow-900/50',
+            text: 'text-yellow-200'
+        },
+        'white': {
+            border: 'border-gray-400',
+            bg: 'bg-gray-800/70',
+            text: 'text-gray-200'
+        }
+    };
+    
+    if (borderColor && styleMap[borderColor]) {
+        return styleMap[borderColor];
+    }
+    
+    // 默认返回白色边框对应的样式
+    return styleMap.white;
+}
+
 // 宝可梦介绍文本映射
 const pokemonDescriptions = {
     // 恶食大王介绍
     'guzzlord': '吞噬一名己方棋子，至多获取其5点体力，能够突破血量上限',
-    
+    'scizor': '每回合一次，对路径上的首个敌人造成1点钢属性伤害',
     // 您可以在这里添加其他宝可梦的介绍
     // 'pikachu': '电系宝可梦，拥有强大的电击能力',
     // 'bulbasaur': '草系宝可梦，能够使用藤鞭攻击'
@@ -91,6 +133,7 @@ if (typeof module !== 'undefined' && module.exports) {
         pokemonBorderMapping,
         getPokemonBorderStyle,
         applyBorderToPokemonCard,
-        getPokemonDescription
+        getPokemonDescription,
+        getPokemonDescriptionStyle  // 添加新函数到导出列表
     };
 }
