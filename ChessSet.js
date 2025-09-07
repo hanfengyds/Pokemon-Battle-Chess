@@ -33,9 +33,9 @@
         {
             id: 'tangrowth',
             name: '巨蔓藤',
-            hp: 6,
+            hp: 6.5,
             atk: 1.5,
-            move: 2,
+            move: 1,
             type: 'grass',
             typeName: '草',
             image: 'player-pokemon/巨蔓藤.gif'
@@ -43,8 +43,8 @@
         {
             id: 'blastoise',
             name: '水箭龟',
-            hp: 5,
-            atk: 2,
+            hp: 4,
+            atk: 1.5,
             move: 2,
             type: 'water',
             typeName: '水',
@@ -71,14 +71,14 @@
             image: 'player-pokemon/敏捷虫.gif'
         },
         {
-            id: 'suicune',
-            name: '水君',
-            hp: 6,
-            atk: 1.5,
+            id: 'samurott',
+            name: '大剑鬼',
+            hp: 3,
+            atk: 2,
             move: 2,
             type: 'water',
             typeName: '水',
-            image: 'player-pokemon/水君.gif'
+            image: 'player-pokemon/大剑鬼.gif'
         },
         {
             id: 'chansey',
@@ -123,8 +123,8 @@
                         {
             id: 'machamp',
             name: '怪力',
-            hp: 3.5,
-            atk: 2.5,
+            hp: 3,
+            atk: 2,
             move: 2,
             type: 'fighting',
             typeName: '格斗',
@@ -133,7 +133,7 @@
                                 {
             id: 'haxorus',
             name: '双斧战龙',
-            hp: 4,
+            hp: 3,
             atk: 2.5,
             move: 2,
             type: 'dragon',
