@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokemon Battle Chess  | 策略对战游戏</title>
+    <title>Pokemon Battle Chess | 策略对战游戏</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    
+
     <!-- 添加Firebase SDK引用 -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    
+
     <!-- 引入宝可梦棋子数据 -->
     <script src="ChessSet.js"></script>
-    
+
     <!-- 配置Tailwind自定义颜色和字体 -->
     <script>
         tailwind.config = {
@@ -28,24 +29,24 @@
                         highlightStrong: '#388E3C',
                         highlightLight: '#81C784',
                         swap: '#9C27B0', // 交换位置的高亮颜色（紫色）
-    normal: '#A8A878',
-    fire: '#F08030',
-    water: '#6890F0',
-    electric: '#F8D030',
-    grass: '#78C850',
-    ice: '#98D8D8',
-    fighting: '#C03028',
-    poison: '#A040A0',
-    ground: '#E0C068',
-    flying: '#A890F0',
-    psychic: '#F85888',
-    bug: '#A8B820',
-    rock: '#B8A038',
-    ghost: '#705898',
-    dragon: '#7038F8',
-    dark: '#705848',
-    steel: '#B8B8D0',
-    fairy: '#EE99AC',
+                        normal: '#A8A878',
+                        fire: '#F08030',
+                        water: '#6890F0',
+                        electric: '#F8D030',
+                        grass: '#78C850',
+                        ice: '#98D8D8',
+                        fighting: '#C03028',
+                        poison: '#A040A0',
+                        ground: '#E0C068',
+                        flying: '#A890F0',
+                        psychic: '#F85888',
+                        bug: '#A8B820',
+                        rock: '#B8A038',
+                        ghost: '#705898',
+                        dragon: '#7038F8',
+                        dark: '#705848',
+                        steel: '#B8B8D0',
+                        fairy: '#EE99AC',
                     },
                     fontFamily: {
                         pokemon: ['"Press Start 2P"', 'cursive', 'sans-serif'],
@@ -55,31 +56,36 @@
             }
         }
     </script>
-    
+
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body class="bg-gray-900 text-white font-sans min-h-screen flex flex-col overflow-hidden">
     <!-- 顶部导航栏 -->
     <header class="bg-neutral shadow-lg py-4 px-6 flex justify-between items-center z-50">
         <div class="flex items-center space-x-3">
             <!-- 修改：将Logo图片路径改为本地background/logo.png -->
-            <img src="background/logo.png" alt="宝可梦象棋Logo" class="w-10 h-10 rounded-full">
-            <h1 class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">宝可梦战棋（ Pokemon Battle Chess ） </h1>
+            <img src="background/logo.png" alt="宝可梦战棋Logo" class="w-10 h-10 rounded-full">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Pokemon Battle Chess</h1>
         </div>
-        
+
         <div class="flex items-center space-x-4">
-            <button id="open-pack-btn" class="bg-primary hover:bg-primary/80 text-white py-2 px-4 rounded-lg flex items-center transition-all duration-300">
+            <button id="open-pack-btn"
+                class="bg-primary hover:bg-primary/80 text-white py-2 px-4 rounded-lg flex items-center transition-all duration-300">
                 <i class="fa fa-gamepad mr-2"></i> 战棋棋包
             </button>
-            <button id="reset-game-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg flex items-center transition-all duration-300">
+            <button id="reset-game-btn"
+                class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg flex items-center transition-all duration-300">
                 <i class="fa fa-refresh mr-2"></i> 重置游戏
             </button>
-            <button id="online-btn" class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg flex items-center transition-all duration-300">
+            <button id="online-btn"
+                class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg flex items-center transition-all duration-300">
                 <i class="fa fa-plug mr-2"></i> 联机对战
             </button>
         </div>
     </header>
-    
+
     <!-- 主游戏区域 -->
     <main class="flex-grow flex flex-col md:flex-row overflow-hidden">
         <!-- 左侧棋盘区域 -->
@@ -87,7 +93,7 @@
             <div id="game-board" class="w-full h-full">
                 <!-- 棋盘将通过JavaScript动态生成 -->
             </div>
-            
+
             <!-- 游戏状态显示 - 只保留剩余移动次数 -->
             <div class="absolute top-4 left-4 bg-black/70 px-4 py-2 rounded-lg backdrop-blur-sm z-20">
                 <div id="moves-remaining" class="text-sm mt-1">
@@ -95,9 +101,10 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- 右侧消息区域 -->
-        <div class="w-full md:w-1/5 h-[calc(100vh-136px)] bg-neutral border-t md:border-t-0 md:border-l-4 border-gray-700 flex flex-col">
+        <div
+            class="w-full md:w-1/5 h-[calc(100vh-136px)] bg-neutral border-t md:border-t-0 md:border-l-4 border-gray-700 flex flex-col">
             <div class="bg-gray-800 py-3 px-4 border-b border-gray-700">
                 <h2 class="text-xl font-bold flex items-center">
                     <i class="fa fa-comment-o mr-2 text-primary"></i> 游戏消息
@@ -110,30 +117,42 @@
             <div class="p-3 border-t border-gray-700 bg-gray-800">
                 <div class="flex gap-2">
                     <input type="text" id="message-input" placeholder="输入消息..."
-                           class="flex-grow bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
-                    <button id="send-message" class="bg-primary hover:bg-primary/80 text-white px-4 py-2 rounded-lg transition-colors">
+                        class="flex-grow bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary">
+                    <button id="send-message"
+                        class="bg-primary hover:bg-primary/80 text-white px-4 py-2 rounded-lg transition-colors">
                         <i class="fa fa-paper-plane"></i>
                     </button>
                 </div>
             </div>
         </div>
     </main>
-    
+
     <!-- 底部状态栏 -->
     <footer class="bg-neutral py-3 px-6 border-t border-gray-700">
         <div class="flex flex-col md:flex-row justify-between items-center">
             <div class="text-gray-400 text-sm mb-2 md:mb-0">
-                宝可梦象棋 &copy; 2025 | 基于属性克制的宝可梦策略游戏
+                宝可梦战棋 &copy; 2025 | 基于属性克制的宝可梦策略游戏
             </div>
             <div class="flex space-x-4">
-                <button id="rules-btn" class="text-gray-300 hover:text-white flex items-center text-sm transition-colors">
+                <button id="rules-btn"
+                    class="text-gray-300 hover:text-white flex items-center text-sm transition-colors">
                     <i class="fa fa-book mr-1"></i> 游戏规则
                 </button>
+                <a href="pokemon-collection.html"
+                    class="text-gray-300 hover:text-white flex items-center text-sm transition-colors">
+                    <i class="fa fa-id-card mr-1"></i> 卡册
+                </a>
+                <button id="redeem-code-btn"
+                    class="text-gray-300 hover:text-white flex items-center text-sm transition-colors">
+                    <i class="fa fa-gift mr-1"></i> 兑换码
+                </button>
+            </div>
         </div>
     </footer>
-    
+
     <!-- 棋包弹窗 -->
-    <div id="pack-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+    <div id="pack-modal"
+        class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-5xl max-h-[80vh] overflow-hidden flex flex-col">
             <div class="p-4 border-b border-gray-700 flex justify-between items-center">
                 <h2 class="text-2xl font-bold">宝可梦战棋棋包</h2>
@@ -141,52 +160,61 @@
                     <i class="fa fa-times"></i>
                 </button>
             </div>
-            
+
             <div class="p-6 overflow-y-auto flex-grow">
                 <p class="text-gray-300 mb-4">请从以下宝可梦选择6个棋子上阵:</p>
-                
+
                 <!-- 添加筛选和排序控制区域 -->
                 <div class="mb-6">
                     <div class="flex flex-wrap gap-2 mb-4">
-                        <button id="sort-hp" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors">
+                        <button id="sort-hp"
+                            class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors">
                             按体力排序
                         </button>
-                        <button id="sort-atk" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors">
+                        <button id="sort-atk"
+                            class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors">
                             按攻击排序
                         </button>
-                        <button id="sort-move" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors">
+                        <button id="sort-move"
+                            class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors">
                             按距离排序
                         </button>
-                        <button id="property-filter-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors flex items-center">
+                        <button id="property-filter-btn"
+                            class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors flex items-center">
                             <i class="fa fa-filter mr-1"></i> 按属性筛选
                             <i class="fa fa-chevron-down ml-1 text-xs"></i>
                         </button>
-                        <button id="reset-filter" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors ml-auto">
+                        <button id="reset-filter"
+                            class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-sm transition-colors ml-auto">
                             重置筛选
                         </button>
                     </div>
-                    
+
                     <!-- 属性筛选按钮组（默认隐藏） -->
-                    <div id="type-filter-buttons" class="flex flex-wrap gap-2 max-h-0 overflow-y-auto transition-all duration-300 opacity-0">
+                    <div id="type-filter-buttons"
+                        class="flex flex-wrap gap-2 max-h-0 overflow-y-auto transition-all duration-300 opacity-0">
                         <!-- 属性按钮将通过JavaScript动态生成 -->
                     </div>
                 </div>
-                
+
                 <div id="pokemon-pack" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <!-- 宝可梦卡片将通过JavaScript动态生成 -->
                 </div>
             </div>
-            
+
             <div class="p-4 border-t border-gray-700 bg-gray-900/50 flex justify-end">
-                <button id="confirm-pieces-btn" class="bg-primary hover:bg-primary/80 text-white py-2 px-6 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <button id="confirm-pieces-btn"
+                    class="bg-primary hover:bg-primary/80 text-white py-2 px-6 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
                     确认上阵 (0/6)
                 </button>
             </div>
         </div>
     </div>
-    
+
     <!-- 规则弹窗 -->
-    <div id="rules-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+    <div id="rules-modal"
+        class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
             <div class="p-4 border-b border-gray-700 flex justify-between items-center">
                 <h2 class="text-2xl font-bold">游戏规则</h2>
@@ -194,39 +222,69 @@
                     <i class="fa fa-times"></i>
                 </button>
             </div>
-            
+
             <div class="p-6 overflow-y-auto flex-grow">
                 <h3 class="text-xl font-semibold mb-3 text-primary">基本玩法</h3>
                 <p class="text-gray-300 mb-4">以下棋为特色，依靠属性克制等机制，操纵宝可梦棋子，击败对手</p>
-                
+
                 <h3 class="text-xl font-semibold mb-3 text-primary">属性效果</h3>
                 <ul class="list-disc pl-5 text-gray-300 mb-4 space-y-2">
                     <li><span class="text-flying">飞行系</span>：飞跃面前的第一个棋子</li>
                     <li><span class="text-electric">电系</span>：斜向走格</li>
                     <li><span class="text-water">水系</span>：在河流行上横向移动</li>
                     <li><span class="text-purple-400">超能系</span>：与友方棋子交换位置</li>
-                    </ul>
-                    <h3 class="text-xl font-semibold mb-3 text-primary">特性效果</h3>
-                    </ul><li><span class="text-water">盖欧卡</span>：在周身一格范围内唤起暴雨，水系精灵攻击+1，火系精灵攻击-1</li>
-                    <li><span class="text-electric">恶食大王</span>：吞噬一名己方棋子，至多获取其5点体力</li>
                 </ul>
-                
+                <h3 class="text-xl font-semibold mb-3 text-primary">关于攻击</h3>
+                </ul>
+                <li>点击精灵后，精灵进入待命状态，显示移动范围，点击范围内的敌人即可发动攻击</li>
+                </ul>
+
                 <h3 class="text-xl font-semibold mb-3 text-primary">伤害计算</h3>
                 <p class="text-gray-300 mb-2">棋子依靠自身的攻击对敌方棋子造成伤害，属性克制关系影响最终伤害：</p>
                 <ul class="list-disc pl-5 text-gray-300 mb-4 space-y-1">
-                    <li>克制关系：效果拔群！伤害+1</li>
-                    <li>抵抗关系：效果不好...伤害-1</li>
-                    <li>免疫关系：完全免疫！伤害=0</li>
+                    <li><span style="color: #4CAF50;">单克制：效果拔群！伤害+1！比如火vs草</span></li>
+                    <li><span style="color: #4CAF50;">双克制：效果绝伦！伤害+2！比如火vs草虫</span></li>
+                    <li><span style="color: #F44336;">单抵抗：效果不好...伤害-1！比如草vs火</span></li>
+                    <li><span style="color: #F44336;">双抵抗：聊胜于无...伤害-2！比如草vs火虫</span></li>
+                    <li><span style="color: #a4a4a4; ">免疫：完全免疫！伤害=0</span>
+                    </li>
+                    <li>对于免疫关系之外的伤害计算，最低值为0.5</li>
+                    <li>【双属性精灵采用伤害最大化原则】</li>
+                    <li<span style="color: #00a4f6;">水恶vs水超，则棋子优先使用克制敌方的恶系攻击；地飞vs钢飞，则棋子优先使用不被免疫的飞行系攻击</li>
                 </ul>
-                
+
                 <h3 class="text-xl font-semibold mb-3 text-primary">回合规则</h3>
                 <p class="text-gray-300">每回合拥有两次移动机会，可以分别移动两个棋子，也可以移动一个棋子两次</p>
             </div>
         </div>
     </div>
-    
+
+    <!-- 兑换码弹窗 -->
+    <div id="redeem-modal"
+        class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">输入兑换码</h2>
+                <button id="close-redeem-btn" class="text-gray-400 hover:text-white text-2xl transition-colors">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-6">
+                <input type="text" id="redeem-code-input" placeholder="请输入兑换码"
+                    class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <div class="flex justify-end">
+                <button id="confirm-redeem-btn"
+                    class="bg-primary hover:bg-primary/80 text-white py-2 px-6 rounded-lg transition-colors">
+                    确认兑换
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 联机模态窗口 -->
-    <div id="online-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+    <div id="online-modal"
+        class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center backdrop-blur-sm">
         <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
             <div class="p-4 border-b border-gray-700 flex justify-between items-center">
                 <h2 class="text-2xl font-bold">联机对战</h2>
@@ -234,36 +292,41 @@
                     <i class="fa fa-times"></i>
                 </button>
             </div>
-            
+
             <div class="p-6 overflow-y-auto flex-grow">
                 <div class="mb-6">
                     <h3 class="text-lg font-semibold mb-3">创建或加入房间</h3>
                     <div class="flex flex-col space-y-4">
                         <div class="flex space-x-2">
-                            <button id="create-room-btn" class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg flex-1 transition-all">
+                            <button id="create-room-btn"
+                                class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg flex-1 transition-all">
                                 <i class="fa fa-plus-circle mr-2"></i> 创建房间
                             </button>
                             <div class="flex flex-1">
-                                <input id="join-room-input" placeholder="输入房间号" class="flex-1 px-3 py-2 rounded-l-lg bg-gray-700 border-0 focus:outline-none">
-                                <button id="join-room-btn" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-r-lg transition-all">
+                                <input id="join-room-input" placeholder="输入房间号"
+                                    class="flex-1 px-3 py-2 rounded-l-lg bg-gray-700 border-0 focus:outline-none">
+                                <button id="join-room-btn"
+                                    class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-r-lg transition-all">
                                     加入
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div id="room-section" class="hidden">
                     <div class="flex items-center justify-between mb-4">
                         <div>
                             <span class="text-gray-400">房间号: </span>
-                            <span id="room-code-display" class="font-mono text-white bg-gray-700 px-2 py-1 rounded"></span>
+                            <span id="room-code-display"
+                                class="font-mono text-white bg-gray-700 px-2 py-1 rounded"></span>
                         </div>
-                        <button id="copy-room-btn" class="bg-gray-700 hover:bg-gray-600 text-white py-1 px-3 rounded text-sm">
+                        <button id="copy-room-btn"
+                            class="bg-gray-700 hover:bg-gray-600 text-white py-1 px-3 rounded text-sm">
                             <i class="fa fa-copy mr-1"></i> 复制
                         </button>
                     </div>
-                    
+
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div class="bg-gray-700 p-3 rounded-lg">
                             <div class="flex items-center mb-2">
@@ -280,14 +343,14 @@
                             <div id="player2-ready" class="text-sm text-gray-400">等待玩家...</div>
                         </div>
                     </div>
-                    
+
                     <div id="ready-section" class="text-center hidden">
                         <button id="ready-btn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg">
                             <i class="fa fa-check mr-2"></i> 准备
                         </button>
-                    </div>                          
                     </div>
                 </div>
+            </div>
             <div class="p-4 border-t border-gray-700 bg-gray-900/50 flex justify-end">
                 <button id="leave-room-btn" class="bg-red-600 hover:bg-red-700 text-white py-2 px-6 rounded-lg hidden">
                     离开房间
@@ -295,12 +358,16 @@
             </div>
         </div>
     </div>
-    
+    <script src="orientation.js"></script>
+    <script src="game-messages.js"></script>
     <script src="game.js"></script>
     <script src="pokemon-cost.js"></script>
     <script src="AIChessSet.js"></script>
     <script src="AIGame.js"></script>
     <script src="PokemonAbilities.js"></script>
+    <script src="game-messages.js"></script>
+    <script src="AttackAnimation.js"></script>
+    <script src="redeem-code.js"></script>
 </body>
+
 </html>
-    
