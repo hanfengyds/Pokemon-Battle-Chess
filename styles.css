@@ -379,6 +379,26 @@
     animation: swap-pulse 1.5s infinite;
 }
 
+/* 添加巨钳螳螂攻击模式的红色高亮样式 */
+.cell-scizor-attack {
+    animation: scizor-attack-pulse 1s infinite;
+}
+
+@keyframes scizor-attack-pulse {
+    0% {
+        background-color: rgba(244, 67, 54, 0.4);
+        box-shadow: 0 0 8px 2px rgba(244, 67, 54, 0.3);
+    }
+    50% {
+        background-color: rgba(244, 67, 54, 0.8);
+        box-shadow: 0 0 12px 4px rgba(244, 67, 54, 0.6);
+    }
+    100% {
+        background-color: rgba(244, 67, 54, 0.4);
+        box-shadow: 0 0 8px 2px rgba(244, 67, 54, 0.3);
+    }
+}
+
 .cell-blue {
     box-shadow: 0 0 0 2px #3B8BFC, 0 0 8px 2px rgba(59, 139, 252, 0.5);
 }
@@ -925,4 +945,196 @@
         rgba(0, 50, 180, 0.5) 70%, 
         rgba(0, 80, 220, 0.3) 100%);
     box-shadow: 0 0 6px rgba(0, 180, 255, 0.9);
+}
+/* 班基拉斯沙尘暴特效 - 深色版本 */
+.sandstorm-effect {
+    position: absolute;
+    pointer-events: none;
+    z-index: 8;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border: 2px solid rgba(139, 69, 19, 0.6); /* 更深的边框颜色，增加不透明度 */
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(139, 69, 19, 0.6); /* 更深的阴影颜色，增加不透明度 */
+    background: rgba(139, 69, 19, 0.2); /* 更深的背景色，增加不透明度 */
+}
+
+.sand-particle {
+    position: absolute;
+    background: linear-gradient(to right, 
+        rgba(139, 69, 19, 1) 0%, 
+        rgba(160, 82, 45, 1) 50%, 
+        rgba(101, 67, 33, 1) 100%); /* 深色沙子渐变 */
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(139, 69, 19, 0.8); /* 更深的阴影，增加大小 */
+    animation: sand-fly 0.4s linear infinite;
+    opacity: 0;
+    top: var(--start-y, 50%);
+    left: -20px;
+}
+
+@keyframes sand-fly {
+    0% {
+        transform: translateX(0) scale(0.5);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1; /* 增加不透明度，使粒子更明显 */
+    }
+    90% {
+        opacity: 0.9;
+    }
+    100% {
+        transform: translateX(calc(100% + 40px)) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* 粒子大小调整 - 增加粒子尺寸，使它们更明显 */
+.sand-particle:nth-child(odd) {
+    width: 8px;
+    height: 7px;
+}
+
+.sand-particle:nth-child(even) {
+    width: 7px;
+    height: 4px;
+}
+
+.sand-particle:nth-child(3n) {
+    width: 6px;
+    height: 3.5px;
+}
+
+.sand-particle:nth-child(5n) {
+    width: 9px;
+    height: 5px;
+}
+
+/* 垂直位置变化 - 保持不变 */
+.sand-particle:nth-child(3n+1) {
+    --start-y: 10%;
+}
+
+.sand-particle:nth-child(3n+2) {
+    --start-y: 30%;
+}
+
+.sand-particle:nth-child(5n+3) {
+    --start-y: 50%;
+}
+
+.sand-particle:nth-child(7n+4) {
+    --start-y: 70%;
+}
+
+.sand-particle:nth-child(11n+5) {
+    --start-y: 90%;
+}
+
+.sand-particle:nth-child(13n+6) {
+    --start-y: 20%;
+}
+
+.sand-particle:nth-child(17n+7) {
+    --start-y: 40%;
+}
+
+.sand-particle:nth-child(19n+8) {
+    --start-y: 60%;
+}
+
+.sand-particle:nth-child(23n+9) {
+    --start-y: 80%;
+}
+
+/* 在第三关时使用沙漠背景 */
+#game-board.ai-level-3 {
+    background-image: url('background/sandy.png');
+    background-size: cover;
+    background-repeat: repeat;
+    background-color: #f5f5dc; /* 沙漠色作为备用背景 */
+}
+
+/* 移除第三关时的星空效果 */
+#game-board.ai-level-3::before,
+#game-board.ai-level-3::after {
+    display: none;
+}
+
+/* 为第三关添加特殊的底部沙漠覆盖层 */
+.sandy-bottom-layer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%; /* 覆盖棋盘底部60%的区域 */
+    background-image: url('background/shake.jpg');
+    background-size: 200px 200px; /* 更小的平铺尺寸 */
+    background-repeat: repeat;
+    opacity: 0.8;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* 班基拉斯沙地图案背景 */
+.sand-background-effect {
+    position: absolute;
+    pointer-events: none;
+    z-index: 4; /* 比沙尘暴特效低一层，确保沙尘暴粒子在上面 */
+    background-image: url('background/shake-2.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.8;
+    border-radius: 4px;
+}
+
+/* 横屏提示样式 */
+.orientation-hint {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: all 0.3s ease;
+    flex-direction: column;
+}
+
+.orientation-hint-content {
+    text-align: center;
+    padding: 2rem;
+    border-radius: 1rem;
+    background-color: rgba(30, 41, 59, 0.9);
+    box-shadow: 0 0 30px rgba(59, 139, 252, 0.5);
+}
+
+.rotate-icon {
+    margin-top: 2rem;
+    animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(180deg);
+    }
+}
+
+.portrait-mode body > *:not(#orientation-hint) {
+    filter: blur(5px);
+    pointer-events: none;
+}
+
+.portrait-mode #orientation-hint {
+    pointer-events: auto;
 }
