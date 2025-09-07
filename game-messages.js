@@ -1,0 +1,250 @@
+// 关卡消息常量
+window.LEVEL_MESSAGES = {
+  VICTORY: {
+    LEVEL_1: "<span style='color:rgb(85, 187, 255);'>漂亮的胜利！看样子你已经摸清了海洋的性格，踏上征途，向未知的远方航行吧。</span>",
+    LEVEL_2: "<span style='color:rgb(85, 187, 255);'>恭喜你平息了大海的愤怒！暴雨已经停息了，该收拾收拾，向着下个目标进发了！</span>"
+  },
+  DEFEAT: {
+    LEVEL_1: "<span style='color:rgb(85, 187, 255);'>真是可惜，或许你距离扬帆起航只差一艘更坚实的船也说不定...</span>",
+    LEVEL_2: "<span style='color:rgb(85, 187, 255);'>惨烈！你终究没能征服巨浪...在自然的伟力面前，难道生命就如此弱小吗？</span>"
+  }
+};
+// 旁白播报系统
+
+/**
+ * 显示游戏旁白
+ * @param {string} text - 要显示的旁白文本
+ * @param {number} duration - 旁白显示的持续时间（毫秒），之后自动隐藏
+ */
+function showNarration(text, duration = 3000) {
+  // 检查是否已存在旁白容器，如果存在则移除
+  const existingNarration = document.getElementById('game-narration');
+  if (existingNarration) {
+    existingNarration.remove();
+  }
+
+  // 创建旁白容器
+  const narrationContainer = document.createElement('div');
+  narrationContainer.id = 'game-narration';
+  narrationContainer.className = 'narration-container';
+
+  // 创建文本元素
+  const textElement = document.createElement('p');
+  textElement.className = 'narration-text';
+  textElement.textContent = text;
+
+  // 添加到容器
+  narrationContainer.appendChild(textElement);
+
+  // 将容器添加到游戏棋盘区域，确保在棋盘中央显示
+  const gameBoard = document.getElementById('game-board');
+  if (gameBoard) {
+    gameBoard.appendChild(narrationContainer);
+  } else {
+    // 如果找不到游戏棋盘，就添加到body
+    document.body.appendChild(narrationContainer);
+  }
+
+  // 添加淡入动画
+  setTimeout(() => {
+    narrationContainer.style.opacity = '1';
+    textElement.style.opacity = '1';
+  }, 10);
+
+  // 设置自动隐藏
+  setTimeout(() => {
+    hideNarration(narrationContainer);
+  }, duration);
+}
+
+/**
+ * 隐藏旁白
+ * @param {HTMLElement} container - 旁白容器元素
+ */
+function hideNarration(container) {
+  if (!container) {
+    container = document.getElementById('game-narration');
+    if (!container) return;
+  }
+
+  container.style.opacity = '0';
+  const textElement = container.querySelector('.narration-text');
+  if (textElement) {
+    textElement.style.opacity = '0';
+  }
+
+  // 等待动画完成后移除元素
+  setTimeout(() => {
+    container.remove();
+  }, 1000);
+}
+
+/**
+ * 初始化旁白系统
+ * 添加必要的CSS样式
+ */
+function initNarrationSystem() {
+  // 检查是否已存在样式，如果存在则不再添加
+  if (document.getElementById('narration-styles')) {
+    return;
+  }
+
+  // 创建样式元素
+  const styleElement = document.createElement('style');
+  styleElement.id = 'narration-styles';
+  styleElement.textContent = `
+        .narration-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7); /* 黑色透明背景 */
+            padding: 25px 35px;
+            border-radius: 10px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+            max-width: 70%;
+            text-align: center;
+        }
+        
+        .narration-text {
+            color: #ffffff;
+            font-size: 18px;
+            font-family: 'SimHei', 'Microsoft YaHei', sans-serif;
+            line-height: 1.5;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+            margin: 0;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out 0.3s;
+        }
+    `;
+
+  // 添加到文档头部
+  document.head.appendChild(styleElement);
+}
+
+/**
+ * 显示AI闯关第一关特定旁白
+ */
+function showAILevel1Narration() {
+  // 初始化旁白系统
+  initNarrationSystem();
+
+  // 显示第一关特定旁白文本
+  showNarration('循着记忆里裂空座坠落的方向，你来到了这条星空中的——河？', 4000);
+}
+
+/**
+ * 显示AI闯关第二关特定旁白
+ */
+function showAILevel2Narration() {
+  // 初始化旁白系统
+  initNarrationSystem();
+
+  // 显示第二关特定旁白文本
+  showNarration('你试着向水流的更深处探索，那个家伙被你彻底惹怒...', 4000);
+}
+
+/**
+ * 显示AI闯关第三关特定旁白
+ */
+function showAILevel3Narration() {
+  // 初始化旁白系统
+  initNarrationSystem();
+
+  // 显示第三关特定旁白文本
+  showNarration('终于看到陆地了...不对，那个区域怎么都是沙子？', 4000);
+}
+
+// 监听URL参数变化，检测是否进入关卡
+function checkForAILevel() {
+  // 检查URL参数
+  const urlParams = new URLSearchParams(window.location.search);
+  const level = urlParams.get('level');
+
+  // 如果URL中有第一关参数
+  if (level === '1') {
+    setTimeout(showAILevel1Narration, 1000);
+    return true;
+  }
+
+  // 如果URL中有第二关参数
+  if (level === '2') {
+    setTimeout(showAILevel2Narration, 1000);
+    return true;
+  }
+
+  // 如果URL中有第三关参数
+  if (level === '3') {
+    setTimeout(showAILevel3Narration, 1000);
+    return true;
+  }
+
+  return false;
+}
+
+// 如果在浏览器环境中直接运行，初始化系统
+if (typeof window !== 'undefined') {
+  // 等待DOM加载完成
+  document.addEventListener('DOMContentLoaded', () => {
+    // 检查是否已经是关卡页面
+    if (checkForAILevel()) {
+      return;
+    }
+
+    // 监听闯关挑战按钮的创建和点击事件
+    // 创建一个MutationObserver来监听DOM变化，特别是AI挑战模态框的创建
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        // 检查是否有闯关挑战按钮
+        const aiButton = document.getElementById('ai-challenge-btn');
+        if (aiButton && !aiButton.hasAttribute('data-narration-added')) {
+          aiButton.setAttribute('data-narration-added', 'true');
+
+          // 监听闯关挑战按钮点击，然后监听关卡选择
+          aiButton.addEventListener('click', () => {
+            setTimeout(() => {
+              // 监听关卡选择事件
+              const levelElements = document.querySelectorAll('#ai-levels > div');
+              levelElements.forEach((levelEl) => {
+                const level = parseInt(levelEl.dataset.level);
+                if (level === 1) {
+                  levelEl.addEventListener('click', () => {
+                    // 第一关被选中，延迟显示旁白以确保游戏初始化完成
+                    setTimeout(showAILevel1Narration, 1000);
+                  });
+                }
+                // 处理第二关
+                else if (level === 2) {
+                  levelEl.addEventListener('click', () => {
+                    // 第二关被选中，延迟显示旁白以确保游戏初始化完成
+                    setTimeout(showAILevel2Narration, 1000);
+                  });
+                }
+                // 处理第三关
+                else if (level === 3) {
+                  levelEl.addEventListener('click', () => {
+                    // 第三关被选中，延迟显示旁白以确保游戏初始化完成
+                    setTimeout(showAILevel3Narration, 1000);
+                  });
+                }
+              });
+            }, 500);
+          });
+        }
+      });
+    });
+
+    // 开始观察body的变化
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  });
+}
+
+// 暴露函数到全局，以便其他脚本可以调用
+window.showAILevel1Narration = showAILevel1Narration;
+window.showAILevel2Narration = showAILevel2Narration;
+window.showAILevel3Narration = showAILevel3Narration;
