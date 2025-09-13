@@ -1,0 +1,150 @@
+/* 手机横屏样式调整 */
+@media screen and (max-width: 1024px) and (orientation: landscape) {
+    /* 调整网页整体布局 */
+    body {
+        height: 200%;
+        overflow-x: hidden;
+    }
+    
+    /* 调整消息区域 */
+    #message-area {
+        height: 30vh;
+        max-height: 30vh;
+        overflow-y: auto;
+    }
+    
+    /* 调整棋盘容器 */
+    .game-container {
+        overflow: visible !important;
+        min-height: 200vh;
+    }
+    
+    /* 缩小顶部标题和按钮 */
+    .game-title {
+        font-size: 1rem;
+        padding: 2px 0;
+    }
+
+    
+    .game-controls button {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+    
+    /* 将棋盘宽度设置为原始尺寸的200% */
+    #game-board {
+        width: 100% !important;
+        height: 200% !important;
+        position: relative;
+        overflow: visible;
+        z-index: 10;
+    }
+    
+    /* 调整其他相关元素 */
+    .piece {
+        transform: scale(0.9);
+    }
+    
+    .vertical-health-value, .attack-value {
+        font-size: 0.7rem;
+    }
+    
+    /* 调整所有按钮样式 */
+    header button {
+        padding: 4px 8px;
+        font-size: 0.7rem;
+        min-width: 60px !important;
+    }
+    
+    /* 确保棋盘容器能够显示完整的200%尺寸棋盘 */
+    .md\:w-4\/5 {
+        overflow-y: auto !important;
+        max-height: 100%;
+    }
+    
+    /* 缩小棋包浮窗及其内部元素 */
+    #pack-modal {
+        max-width: 80% !important;
+        max-height: 80vh !important;
+        /* 确保浮窗容器绝对居中 - 但不强制display属性 */
+        position: fixed !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        /* 移除display: flex !important;，让hidden类正常工作 */
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    #pack-modal .bg-gray-800 {
+        max-width: 100% !important;
+        max-height: 80vh !important;
+        /* 重置内部内容的transform，防止继承父元素的transform */
+        transform: none !important;
+    }
+    
+    #pack-modal h2 {
+        font-size: 1.2rem !important;
+    }
+    
+    #pack-modal .text-gray-300 {
+        font-size: 0.8rem !important;
+    }
+    
+    #pack-modal button {
+        padding: 4px 8px !important;
+        font-size: 0.7rem !important;
+    }
+    
+    #pokemon-pack {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 3px !important;
+        /* 确保卡片网格在容器内居中 */
+        justify-items: center !important;
+    }
+    
+    #pokemon-pack .card {
+        transform: scale(0.75);
+        transform-origin: top left;
+        margin: -10% !important;
+    }
+    
+    #pokemon-pack .card img {
+        height: 60px !important;
+    }
+    
+    #pokemon-pack .card h3 {
+        font-size: 0.7rem !important;
+        margin-bottom: 2px !important;
+    }
+    
+    #pokemon-pack .type-icon {
+        width: 14px !important;
+        height: 14px !important;
+    }
+    
+    #pokemon-pack .text-red-400,
+    #pokemon-pack .text-yellow-400,
+    #pokemon-pack .text-green-400 {
+        font-size: 0.6rem !important;
+    }
+    
+    #confirm-pieces-btn {
+        padding: 6px 12px !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+/* 添加横向滚动条样式 */
+.md\:w-4\/5::-webkit-scrollbar {
+    height: 8px;
+}
+
+.md\:w-4\/5::-webkit-scrollbar-track {
+    background: #1E293B;
+}
+
+.md\:w-4\/5::-webkit-scrollbar-thumb {
+    background-color: #3B8BFC;
+    border-radius: 4px;
+}
