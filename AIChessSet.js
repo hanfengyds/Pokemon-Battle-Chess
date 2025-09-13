@@ -153,6 +153,63 @@ const aiPokemonData = [
         type: ['bug','steel'],
         typeName: ['虫','钢'],
         image: 'ai-pokemon/巨钳螳螂.gif',
+    },
+        { id: 'moltres',
+        name: '火焰鸟',
+        hp: 1.5,
+        atk: 3,
+        move: 2,
+        type: ['fire','flying'],
+        typeName: ['火','飞行'],
+        image: 'ai-pokemon/火焰鸟.gif',
+    },
+        { id: 'zapdos',
+        name: '闪电鸟',
+        hp: 1.5,
+        atk: 2,
+        move: 3,
+        type: ['electric','flying'],
+        typeName: ['电','飞行'],
+        image: 'ai-pokemon/闪电鸟.gif',
+    },
+        { id: 'articuno',
+        name: '急冻鸟',
+        hp: 1.5,
+        atk: 1.5,
+        move: 2,
+        type: ['ice','flying'],
+        typeName: ['冰','飞行'],
+        image: 'ai-pokemon/急冻鸟.gif',
+    },
+        { 
+        id: 'rock',
+        name: '岩石',
+        hp: 1,
+        atk: 0,
+        move: 0,
+        type: 'rock',
+        typeName: '岩石',
+        image: 'ai-pokemon/rock.png',
+    },
+        { 
+        id: 'cactus',
+        name: '仙人掌',
+        hp: 1,
+        atk: 1,
+        move: 0,
+        type: 'grass',
+        typeName: '草',
+        image: 'ai-pokemon/cactus.png',
+    },
+        { 
+        id: 'lugia',
+        name: '洛奇亚',
+        hp: 8.5,
+        atk: 1.5,
+        move: 2,
+        type: ['psychic','flying'],
+        typeName: ['超能','飞行'],
+        image: 'ai-pokemon/lugia.gif',
     }
 ];
 
@@ -225,6 +282,33 @@ const aiLevels = [
             aiPokemonData.find(p => p.id === 'aerodactyl'),//化石翼龙
             aiPokemonData.find(p => p.id === 'excadrill'), //龙头地鼠
             aiPokemonData.find(p => p.id === 'excadrill'), //龙头地鼠
+             aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'rock'),
+            aiPokemonData.find(p => p.id === 'cactus'),
+            aiPokemonData.find(p => p.id === 'cactus'),
+            aiPokemonData.find(p => p.id === 'cactus'),
+            aiPokemonData.find(p => p.id === 'cactus'),
+            aiPokemonData.find(p => p.id === 'cactus'),
+            aiPokemonData.find(p => p.id === 'cactus'),
+            aiPokemonData.find(p => p.id === 'cactus'),
         ],
         initialPositions: [
             { x: 1, y: 1 }, // 班基拉斯
@@ -234,7 +318,50 @@ const aiLevels = [
             { x: 7, y: 5 },  //摇篮百合
             { x: 2, y: 5 }, //化石翼龙
             { x: 7, y: 2 },// 龙头地鼠
-            { x: 2, y: 2 }
+            { x: 2, y: 2 },//龙头地鼠
+                        { x: 0, y: 0 },
+ { x: 0, y: 3 },
+            { x: 0, y: 7 },
+            { x: 2, y: 8 },
+            { x: 3, y: 5 },
+            { x: 3, y: 9 },
+            { x: 4, y: 8 },
+            { x: 4, y: 6 },
+            { x: 5, y: 8 },
+            { x: 5, y: 1 },
+            { x: 9, y: 7 },
+            { x: 6, y: 8 },
+            { x: 6, y: 6 },
+            { x: 7, y: 3 },
+            { x: 7, y: 7 },
+            { x: 8, y: 8 },
+            { x: 8, y: 2 },
+            { x: 1, y: 7 },
+            { x: 0, y: 3 },
+            { x: 9, y: 5 },
+            { x: 1, y: 5 },//仙人掌
+            { x: 0, y: 9 },
+            { x: 7, y: 8 },
+            { x: 5, y: 6 },
+            { x: 3, y: 4 },
+            { x: 3, y: 7 },
+            { x: 9, y: 10 },
+
+        ]
+    },
+     {
+        level: 4,
+        name: '第四关 「高天的试炼」',
+        difficulty: '较难',
+        aiPieces: [
+            aiPokemonData.find(p => p.id === 'moltres'),//火焰鸟
+            aiPokemonData.find(p => p.id === 'zapdos'), // 闪电鸟
+            aiPokemonData.find(p => p.id === 'articuno'), //急冻鸟
+        ],
+        initialPositions: [
+            { x: 1, y: 2 }, // 火焰鸟
+            { x: 3, y: 2 }, // 闪电鸟
+            { x: 5, y: 2 },  // 急冻鸟
         ]
     }
 ];
