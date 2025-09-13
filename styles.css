@@ -757,6 +757,8 @@
     100% { transform: translate(-25%, -12%); }
 }
 
+
+
 /* 盖欧卡下雨特效 - 更细更密集的雨滴 */
 .rain-effect {
     position: absolute;
@@ -1049,13 +1051,6 @@
     --start-y: 80%;
 }
 
-/* 在第三关时使用沙漠背景 */
-#game-board.ai-level-3 {
-    background-image: url('background/sandy.png');
-    background-size: cover;
-    background-repeat: repeat;
-    background-color: #f5f5dc; /* 沙漠色作为备用背景 */
-}
 
 /* 移除第三关时的星空效果 */
 #game-board.ai-level-3::before,
@@ -1091,50 +1086,238 @@
     border-radius: 4px;
 }
 
-/* 横屏提示样式 */
-.orientation-hint {
+/* 移除第四关时的星空效果 */
+#game-board.ai-level-4::before,
+#game-board.ai-level-4::after {
+    display: none;
+}
+
+/* 为第四关添加山脉背景 */
+#game-board.ai-level-4 {
+    background-image: url('background/山脉.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* 为第四关添加半透明遮罩层，确保棋子可见性 */
+#game-board.ai-level-4 .mountain-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(2, 27, 76, 0.1);
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* 全屏狂风特效样式 - 增强版本 */
+.fullscreen-whirlwind {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.9);
-    color: white;
-    display: flex;
-    justify-content: center;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.5s ease-out;
+    background: linear-gradient(90deg, rgba(185, 210, 235, 0.1) 0%, rgba(220, 230, 240, 0.2) 50%, rgba(185, 210, 235, 0.1) 100%);
+}
+
+.whirlwind-cloud {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    filter: blur(15px);
+    animation: whirlwind 5s linear infinite;
+}
+
+/* 垂直方向的风 */
+.vertical-whirlwind {
+    animation: verticalWhirlwind 4s linear infinite !important;
+}
+
+/* 风的线条效果 */
+.whirlwind-line {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.4);
+    transform-origin: left center;
+    animation: windLine 2s linear infinite;
+}
+
+@keyframes whirlwind {
+    0% {
+        transform: translateX(-200px) translateY(0) rotate(0deg) scale(1);
+        opacity: 0;
+    }
+    20% {
+        opacity: 0.3;
+    }
+    80% {
+        opacity: 0.3;
+    }
+    100% {
+        transform: translateX(calc(100vw + 200px)) translateY(0) rotate(360deg) scale(1.2);
+        opacity: 0;
+    }
+}
+
+@keyframes verticalWhirlwind {
+    0% {
+        transform: translateY(-100px) translateX(0) rotate(0deg) scale(1);
+        opacity: 0;
+    }
+    20% {
+        opacity: 0.2;
+    }
+    80% {
+        opacity: 0.2;
+    }
+    100% {
+        transform: translateY(calc(100vh + 100px)) translateX(0) rotate(-360deg) scale(1.2);
+        opacity: 0;
+    }
+}
+
+@keyframes windLine {
+    0% {
+        transform: translateX(-100px) rotate(0deg);
+        opacity: 0;
+    }
+    20% {
+        opacity: 0.2;
+    }
+    80% {
+        opacity: 0.2;
+    }
+    100% {
+        transform: translateX(calc(100vw + 100px)) rotate(0deg);
+        opacity: 0;
+    }
+}
+
+/* 精灵被风吹离的动画效果 */
+.piece.blown-away {
+    z-index: 50 !important;
+    animation: blowAway 1.5s ease-out forwards;
+}
+
+.piece.blown-away.top-left {
+    animation-name: blowAwayTopLeft;
+}
+
+.piece.blown-away.top-right {
+    animation-name: blowAwayTopRight;
+}
+
+.piece.blown-away.top-center {
+    animation-name: blowAwayTop;
+}
+
+@keyframes blowAwayTopLeft {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(-100px, -100px) rotate(-10deg) scale(0.8);
+        opacity: 0.5;
+    }
+    100% {
+        transform: translate(-300px, -300px) rotate(-20deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+@keyframes blowAwayTopRight {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(100px, -100px) rotate(10deg) scale(0.8);
+        opacity: 0.5;
+    }
+    100% {
+        transform: translate(300px, -300px) rotate(20deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+@keyframes blowAwayTop {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(0, -100px) rotate(5deg) scale(0.8);
+        opacity: 0.5;
+    }
+    100% {
+        transform: translate(0, -300px) rotate(0deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* 竖屏提示样式 */
+.orientation-hint {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+    display: none;
     align-items: center;
+    justify-content: center;
     z-index: 9999;
-    transition: all 0.3s ease;
     flex-direction: column;
 }
 
 .orientation-hint-content {
     text-align: center;
-    padding: 2rem;
-    border-radius: 1rem;
-    background-color: rgba(30, 41, 59, 0.9);
-    box-shadow: 0 0 30px rgba(59, 139, 252, 0.5);
+    color: white;
+    padding: 20px;
+}
+
+.orientation-hint-content i.fa-mobile {
+    color: #3B8BFC;
+}
+
+.orientation-hint-content .text-2xl {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 16px 0;
+}
+
+.orientation-hint-content .text-lg {
+    font-size: 1.2rem;
+    color: #ccc;
 }
 
 .rotate-icon {
-    margin-top: 2rem;
-    animation: rotate 2s linear infinite;
+    margin-top: 24px;
+    animation: rotate-icon 3s linear infinite;
 }
 
-@keyframes rotate {
-    from {
+@keyframes rotate-icon {
+    0% {
         transform: rotate(0deg);
     }
-    to {
-        transform: rotate(180deg);
+    100% {
+        transform: rotate(360deg);
     }
 }
 
-.portrait-mode body > *:not(#orientation-hint) {
-    filter: blur(5px);
-    pointer-events: none;
+/* 竖屏模式下的页面布局调整 */
+.portrait-mode {
+    overflow: hidden;
 }
 
-.portrait-mode #orientation-hint {
-    pointer-events: auto;
+/* 移动设备横屏模式样式 */
+.mobile-landscape {
+    overflow-x: hidden;
 }
+
