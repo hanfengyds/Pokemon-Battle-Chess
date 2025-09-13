@@ -1,9 +1,11 @@
 // AI对战状态
+// 修改aiGameState对象，添加狂风特效触发标志
 const aiGameState = {
     isAIMode: false,
     currentLevel: null,
     aiTurn: false,
-    aiPieces: []
+    aiPieces: [],
+    whirlwindEffectTriggered: false // 新增：狂风特效触发标志
 };
 
 // 初始化AI对战
@@ -88,16 +90,21 @@ function startAIChallenge(level) {
     // 使用专门的重置函数而不是resetGame()
     resetGameForAI();
     
-    // 添加：第三关特殊样式
+    // 添加关卡特殊样式
     const gameBoard = document.getElementById('game-board');
     
     // 先移除所有可能的关卡特殊类
-    gameBoard.classList.remove('ai-level-1', 'ai-level-2', 'ai-level-3');
+    gameBoard.classList.remove('ai-level-1', 'ai-level-2', 'ai-level-3', 'ai-level-4');
     
-    // 移除之前可能存在的沙漠覆盖层
+    // 移除之前可能存在的特殊层
     const existingSandyLayer = document.querySelector('.sandy-bottom-layer');
     if (existingSandyLayer) {
         existingSandyLayer.remove();
+    }
+    
+    const existingMountainLayer = document.querySelector('.mountain-overlay');
+    if (existingMountainLayer) {
+        existingMountainLayer.remove();
     }
     
     if (level === 3) {
@@ -108,6 +115,14 @@ function startAIChallenge(level) {
         const sandyLayer = document.createElement('div');
         sandyLayer.className = 'sandy-bottom-layer';
         gameBoard.appendChild(sandyLayer);
+    } else if (level === 4) {
+        // 第四关添加山脉背景
+        gameBoard.classList.add('ai-level-4');
+        
+        // 创建并添加山脉遮罩层
+        const mountainLayer = document.createElement('div');
+        mountainLayer.className = 'mountain-overlay';
+        gameBoard.appendChild(mountainLayer);
     }
     
     // 设置AI棋子
@@ -155,7 +170,11 @@ function startAIChallenge(level) {
         addMessage(`<span style="color:rgb(85, 187, 255);">欢迎挑战第一关 「源始的海洋」！你将面临那片神秘而暗藏杀机的海洋，做好准备吧！</span>`);
     } else if (level === 2) {
         addMessage(`<span style="color:rgb(85, 187, 255);">你居然来到了第二关 「狂怒的海洋」！那个家伙似乎生气了，现在整个世界全部在下暴雨，赶快阻止它！！</span>`);
+     } else if (level === 3) {
+        addMessage(`<span style="color:rgb(242, 129, 0);">你居然来到了第三关 「沙漠的暴君」！沙漠中散布着许多岩石，除了飞行系宝可梦，其他宝可梦都无法直接越过它们！！</span>`);
     } else {
+        addMessage(`<span style="color:rgb(255, 60, 0);">你居然来到了第四关 「高天的试炼」！传说中的大鸟袭来了！挺过它们的试炼，兴许能得到神明的眷顾也说不定！！</span>`);
+        
         addMessage(`开始${levelConfig.name}！你是蓝色方，对战AI控制的红色方`);
     }
     addMessage(`AI拥有 ${levelConfig.aiPieces.length} 个宝可梦棋子`);
@@ -227,6 +246,15 @@ function aiTurn() {
                                 Math.abs(move.x - p.x) + Math.abs(move.y - p.y)
                             ));
                             score -= minDistance * 2; // 距离越近得分越高
+                            
+                            // 新添加：检查移动路径上是否有障碍物阻挡
+                            if (aiGameState.currentLevel === 3) { // 只在第三关应用此逻辑
+                                // 获取从当前位置到目标位置的直线路径上的所有格子
+                                const pathClear = checkPathClear(aiPiece.x, aiPiece.y, move.x, move.y);
+                                if (pathClear) {
+                                    score += 10; // 路径清晰的格子额外加分
+                                }
+                            }
                         }
                         
                         // 如果是水系精灵，检查是否在盖欧卡降雨范围内
@@ -320,20 +348,59 @@ function executeAIAttack(attacker, target) {
     // 计算伤害
     const damage = calculateDamage(attacker, target);
     
-    // 应用伤害
-    target.currentHp -= damage;
-    
-    addMessage(`AI的 ${attacker.name} 攻击了 ${target.name}，造成了 ${damage} 点伤害！`);
-    
-    // 检查目标是否被击败
-    if (target.currentHp <= 0) {
-        gameState.pieces = gameState.pieces.filter(p => p.id !== target.id);
-        addMessage(`${target.name} 被击败了！`);
-        checkGameEnd();
+    // 定义处理伤害结算的函数
+    function processDamage() {
+        // 应用伤害
+        target.currentHp -= damage;
+        
+        addMessage(`AI的 ${attacker.name} 攻击了 ${target.name}，造成了 ${damage} 点伤害！`);
+        
+        // 检查目标是否被击败
+        if (target.currentHp <= 0) {
+            gameState.pieces = gameState.pieces.filter(p => p.id !== target.id);
+            addMessage(`${target.name} 被击败了！`);
+            checkGameEnd();
+        }
+        
+        // 重新渲染
+        renderPieces();
     }
     
-    // 重新渲染
-    renderPieces();
+    // 检查是否需要播放攻击动画 - 这是之前缺失的关键部分！
+    let animationDelayNeeded = false;
+    if (window.AttackAnimation && window.AttackAnimation.playAttackAnimation) {
+        // 调用与玩家攻击相同的动画系统
+        animationDelayNeeded = window.AttackAnimation.playAttackAnimation(attacker, target, processDamage);
+    }
+    
+    // 如果不需要延迟伤害结算，则立即处理
+    if (!animationDelayNeeded) {
+        setTimeout(processDamage, 500);
+    }
+    
+    // 在伤害处理完成后添加检测
+    if (aiGameState.currentLevel === 4) {
+        const legendaryBirds = gameState.pieces.filter(p => 
+            ['zapdos', 'moltres', 'articuno'].some(bird => p.id.includes(bird))
+        );
+        
+        if (legendaryBirds.length === 0) {
+            // 生成洛奇亚
+            const lugia = aiPokemonData.find(p => p.id === 'lugia');
+            gameState.pieces.push({
+                ...lugia,
+                currentHp: lugia.hp,
+                x: 4,
+                y: 5,
+                player: 'red',
+                id: 'lugia-final-boss'
+            });
+            
+            // 显示阶段结束提示
+            showPhase1EndMessage();
+            renderPieces();
+        }
+    }
 }
 
 // 专门的AI移动函数
@@ -349,6 +416,26 @@ function executeAIMove(piece, move) {
     renderPieces();
     
     addMessage(`AI的 ${piece.name} 从 (${oldX},${oldY}) 移动到 (${move.x},${move.y})`);
+    
+    // 检测是否是三神鸟（闪电鸟、火焰鸟、急冻鸟）在第四关移动
+    // 并且检查是否已经触发过这个特效（防止重复触发）
+    // 修改这里：使用includes检查piece.id是否包含三神鸟的基础id
+    if (aiGameState.currentLevel === 4 && 
+        ['zapdos', 'moltres', 'articuno'].some(birdId => piece.id.includes(birdId)) && 
+        !aiGameState.whirlwindEffectTriggered) {
+        
+        // 标记特效已触发
+        aiGameState.whirlwindEffectTriggered = true;
+        
+        // 1. 创建全屏狂风特效
+        createFullscreenWhirlwind();
+        
+        // 2. 显示文字提示浮窗 - 使用game-messages.js中的函数
+        showLegendaryBirdsMessage();
+        
+        // 3. 移除玩家最后选择的三个精灵，只保留前三个
+        removePlayerLastThreePieces();
+    }
 }
 // 重写回合切换函数以支持AI
 const originalSwitchTurn = switchTurn;
@@ -393,6 +480,9 @@ function resetGameForAI() {
     gameState.swappablePieces = [];
     gameState.pieces = [];
     gameState.devouredPieces = []; // 新增：重置吞噬状态
+    
+    // 新增：重置狂风特效触发标志
+    aiGameState.whirlwindEffectTriggered = false;
     
     document.querySelectorAll('.piece').forEach(piece => piece.remove());
     document.querySelectorAll('.vertical-health-container').forEach(healthBar => healthBar.remove());
@@ -440,3 +530,98 @@ function resetGameForAI() {
 
 // 初始化时启动AI对战功能
 initAIGame();
+
+// 添加检查路径是否清晰的辅助函数
+function checkPathClear(startX, startY, endX, endY) {
+    // 检查从起点到终点的直线路径上是否有障碍物
+    const dx = Math.sign(endX - startX);
+    const dy = Math.sign(endY - startY);
+    
+    let x = startX + dx;
+    let y = startY + dy;
+    
+    // 沿着路径检查每个格子
+    while (x !== endX || y !== endY) {
+        const piece = getPieceAtPosition(x, y);
+        if (piece && (piece.id.includes('rock') || piece.id.includes('cactus'))) {
+            // 路径上有岩石或仙人掌阻挡
+            return false;
+        }
+        
+        x += dx;
+        y += dy;
+        
+        // 确保不超出棋盘范围
+        if (x < 0 || x >= gameState.boardSize.x || y < 0 || y >= gameState.boardSize.y) {
+            break;
+        }
+    }
+    
+    return true;
+}
+
+// 在文件末尾添加新函数
+// 创建全屏狂风特效
+function createFullscreenWhirlwind() {
+    // 移除已存在的狂风特效
+    const existingWhirlwind = document.querySelector('.fullscreen-whirlwind');
+    if (existingWhirlwind) {
+        existingWhirlwind.remove();
+    }
+    
+    const whirlwindContainer = document.createElement('div');
+    whirlwindContainer.className = 'fullscreen-whirlwind';
+    
+    // 创建20个云朵粒子
+    for (let i = 0; i < 20; i++) {
+        const cloud = document.createElement('div');
+        cloud.className = 'whirlwind-cloud';
+        
+        // 随机设置云朵大小、位置和动画持续时间
+        const size = 50 + Math.random() * 150;
+        cloud.style.width = `${size}px`;
+        cloud.style.height = `${size * 0.5}px`;
+        cloud.style.top = `${Math.random() * 100}vh`;
+        cloud.style.animationDuration = `${5 + Math.random() * 10}s`;
+        cloud.style.animationDelay = `${Math.random() * 5}s`;
+        
+        whirlwindContainer.appendChild(cloud);
+    }
+    
+    document.body.appendChild(whirlwindContainer);
+    
+    // 10秒后移除狂风特效
+    setTimeout(() => {
+        if (whirlwindContainer.parentNode) {
+            whirlwindContainer.style.opacity = '0';
+            whirlwindContainer.style.transition = 'opacity 2s ease-out';
+            setTimeout(() => {
+                if (whirlwindContainer.parentNode) {
+                    whirlwindContainer.parentNode.removeChild(whirlwindContainer);
+                }
+            }, 2000);
+        }
+    }, 10000);
+}
+
+
+// 移除玩家最后选择的三个精灵，只保留前三个
+function removePlayerLastThreePieces() {
+    // 获取所有蓝色方（玩家）的棋子
+    const playerPieces = gameState.pieces.filter(piece => piece.player === 'blue');
+    
+    // 如果玩家棋子数量大于3，则移除最后选择的三个
+    if (playerPieces.length > 3) {
+        // 按id排序，假设id较小的是先选择的
+        playerPieces.sort((a, b) => a.id.localeCompare(b.id));
+        
+        // 获取最后三个需要移除的棋子
+        const piecesToRemove = playerPieces.slice(-3);
+        
+        // 从游戏状态中移除这些棋子
+        gameState.pieces = gameState.pieces.filter(piece => !piecesToRemove.includes(piece));
+        
+        // 重新渲染
+        renderPieces();
+    }
+}
