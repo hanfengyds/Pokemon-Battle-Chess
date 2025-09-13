@@ -1,7 +1,45 @@
 // 兑换码功能的独立实现
 // 这个文件应该在index.html中的所有其他脚本之后引入
 
+// 页面加载时检查localStorage，恢复巨钳螳螂
+function restoreScizorFromLocalStorage() {
+    try {
+        // 检查是否已经在localStorage中保存了巨钳螳螂
+        const hasScizor = localStorage.getItem('hasScizor') === 'true';
+        
+        // 检查全局pokemonData是否已加载且巨钳螳螂不存在
+        if (hasScizor && window.pokemonData && !window.pokemonData.some(p => p.id === 'scizor')) {
+            console.log('从localStorage恢复巨钳螳螂');
+            
+            // 定义巨钳螳螂数据
+            const playerScizor = {
+                id: 'scizor',
+                name: '巨钳螳螂',
+                hp: 3.5,
+                atk: 2,
+                move: 2,
+                type: ['bug','steel'],
+                typeName: ['虫','钢'],
+                image: 'ai-pokemon/巨钳螳螂.gif'
+            };
+            
+            // 将巨钳螳螂添加到玩家棋包
+            window.pokemonData.push(playerScizor);
+            
+            // 如果棋包已经创建，更新棋包显示
+            if (typeof createPokemonPack === 'function') {
+                createPokemonPack();
+            }
+        }
+    } catch (error) {
+        console.error('从localStorage恢复巨钳螳螂时出错:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // 首先尝试从localStorage恢复巨钳螳螂
+    restoreScizorFromLocalStorage();
+    
     // 检查兑换码相关元素是否存在
     const redeemModal = document.getElementById('redeem-modal');
     const redeemBtn = document.getElementById('redeem-code-btn');
@@ -99,6 +137,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // 在输入框内显示成功消息
                     showInputMessage('兑换成功！', 'success');
+                    
+                    // 保存到localStorage
+                    try {
+                        localStorage.setItem('hasScizor', 'true');
+                        console.log('成功将巨钳螳螂信息保存到localStorage');
+                    } catch (error) {
+                        console.error('保存到localStorage时出错:', error);
+                    }
                     
                     // 在消息区域播报获得精灵的信息
                     if (typeof addMessage === 'function') {
