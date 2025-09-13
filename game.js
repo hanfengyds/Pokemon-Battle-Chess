@@ -28,6 +28,12 @@ const onlineState = {
   opponentId: null,
   isReady: false,
   opponentReady: false,
+  playerName: '玩家1', // 默认用户名
+  opponentName: '玩家2', // 默认对手名
+  hostName: '', // 房主名字
+  hostId: '', // 房主ID
+  spectatorMode: false, // 是否为观战模式
+  spectatorName: '', // 观战者名字
   // 添加投票状态
   resetVote: {
     requested: false,
@@ -73,11 +79,20 @@ const database = firebase.database();
 function init() {
     createBoard();
     createPokemonPack();
+    ensureTypeFilterButtons(); // 添加这行代码
     setupEventListeners();
     initOnline();
     initAIGame(); // 添加这行代码
     setupRedeemCodeFeature(); // 添加兑换码功能
     addMessage('欢迎来到宝可梦象棋！请先打开棋包选择你的6个宝可梦');
+}
+
+// 确保属性筛选按钮正确创建
+function ensureTypeFilterButtons() {
+    const typeFilterButtons = document.getElementById('type-filter-buttons');
+    if (typeFilterButtons && typeFilterButtons.children.length === 0) {
+        createTypeFilterButtons();
+    }
 }
 
 // 初始化联机功能
@@ -124,15 +139,20 @@ function createRoom() {
   const roomId = generateRoomId();
   onlineState.roomId = roomId;
   onlineState.playerRole = 'blue';
+  // 获取用户输入的名字
+  onlineState.playerName = document.getElementById('username-input').value.trim() || '玩家1';
   
   // 在Firebase中创建房间
   const roomRef = database.ref('rooms/' + roomId);
   roomRef.set({
     player1: onlineState.playerId,
     player2: null,
+    player1Name: onlineState.playerName, // 保存玩家1的名字
+    player2Name: null,
     player1Ready: false,
     player2Ready: false,
     gameState: null,
+    spectators: {}, // 初始化观战者对象
     createdAt: firebase.database.ServerValue.TIMESTAMP
   });
   
@@ -158,6 +178,8 @@ function joinRoom() {
   
   onlineState.roomId = roomId;
   onlineState.playerRole = 'red';
+  // 获取用户输入的名字
+  onlineState.playerName = document.getElementById('username-input').value.trim() || '玩家2';
   
   const roomRef = database.ref('rooms/' + roomId);
   
@@ -175,10 +197,11 @@ function joinRoom() {
     }
     
     // 加入房间
-    roomRef.update({
-      player2: onlineState.playerId,
-      player2Ready: false
-    });
+  roomRef.update({
+    player2: onlineState.playerId,
+    player2Name: onlineState.playerName, // 保存玩家2的名字
+    player2Ready: false
+  });
     
     // 监听房间变化
     roomRef.on('value', handleRoomUpdate);
@@ -196,6 +219,87 @@ function joinRoom() {
   });
 }
 
+// 加入房间作为观战者
+function joinRoomAsSpectator() {
+  const roomId = document.getElementById('join-room-input').value.trim().toUpperCase();
+  if (!roomId) {
+    addOnlineMessage('请输入房间号');
+    return;
+  }
+  
+  onlineState.roomId = roomId;
+  onlineState.playerRole = null; // 观战者没有角色
+  onlineState.spectatorMode = true;
+  onlineState.isOnline = true; // 关键修改：设置为在线状态
+  // 获取用户输入的名字作为观战者名字
+  onlineState.spectatorName = document.getElementById('username-input').value.trim() || '观战者' + Math.floor(Math.random() * 1000);
+  
+  const roomRef = database.ref('rooms/' + roomId);
+  
+  // 检查房间是否存在
+  roomRef.once('value').then((snapshot) => {
+    if (!snapshot.exists()) {
+      addOnlineMessage('房间不存在');
+      return;
+    }
+    
+    const roomData = snapshot.val();
+    
+    // 添加观战者到房间
+    const spectators = roomData.spectators || {};
+    spectators[onlineState.playerId] = onlineState.spectatorName;
+    
+    roomRef.update({
+      spectators: spectators
+    });
+    
+    // 监听房间变化
+    roomRef.on('value', handleRoomUpdate);
+    
+    // 更新UI - 观战者模式
+    updateUIForSpectator();
+    
+    document.getElementById('room-section').classList.remove('hidden');
+    document.getElementById('room-code-display').textContent = roomId;
+    document.getElementById('leave-room-btn').classList.remove('hidden');
+    
+    addOnlineMessage('已进入观战模式，房间号: ' + roomId);
+  }).catch((error) => {
+    console.error('加入房间失败:', error);
+    addOnlineMessage('加入房间失败，请检查网络连接');
+  });
+}
+
+// 更新为观战者UI
+function updateUIForSpectator() {
+  // 隐藏准备按钮和其他玩家控制按钮
+  document.getElementById('ready-section').classList.add('hidden');
+  
+  // 更新玩家信息显示为观战者视角
+  const player1El = document.querySelector('#room-section .grid-cols-2 div:first-child span:not(.online-status)');
+  const player2El = document.querySelector('#room-section .grid-cols-2 div:last-child span:not(.online-status)');
+  if (player1El && player2El) {
+    player1El.textContent = onlineState.hostName || '玩家1';
+    player2El.textContent = onlineState.opponentName || '玩家2';
+  }
+  
+  // 在游戏界面隐藏非观战者可用的按钮
+  // 修改：将'challenge-btn'改为'ai-challenge-btn'
+  const gameButtonsToHide = [
+    'ready-btn', 'open-pack-btn', 'reset-game-btn', 'ai-challenge-btn', 'auto-battle-btn'
+  ];
+  
+  gameButtonsToHide.forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.classList.add('hidden');
+    }
+  });
+  
+  // 显示离开房间按钮（应该已经在前面显示了）
+  document.getElementById('leave-room-btn').classList.remove('hidden');
+}
+
 // 处理房间更新
 function handleRoomUpdate(snapshot) {
   if (!snapshot.exists()) {
@@ -205,6 +309,45 @@ function handleRoomUpdate(snapshot) {
   }
   
   const roomData = snapshot.val();
+  
+  // 缓存房主信息
+  onlineState.hostId = roomData.player1;
+  onlineState.hostName = roomData.player1Name || '玩家1';
+  
+  // 同步用户名
+  if (onlineState.spectatorMode) {
+    // 观战者模式
+    onlineState.hostName = roomData.player1Name || '玩家1';
+    onlineState.opponentName = roomData.player2Name || '玩家2';
+    
+    // 更新UI为观战者视角
+    updateUIForSpectator();
+  } else if (onlineState.playerRole === 'blue') {
+    // 蓝色方（房主）
+    onlineState.playerName = roomData.player1Name || '玩家1';
+    onlineState.opponentName = roomData.player2Name || '玩家2';
+  } else {
+    // 红色方（加入者）
+    onlineState.playerName = roomData.player2Name || '玩家2';
+    onlineState.opponentName = roomData.player1Name || '玩家1';
+  }
+  
+  // 更新UI中的玩家名称显示
+  const player1El = document.querySelector('#room-section .grid-cols-2 div:first-child span:not(.online-status)');
+  const player2El = document.querySelector('#room-section .grid-cols-2 div:last-child span:not(.online-status)');
+  if (player1El && player2El) {
+    if (onlineState.spectatorMode) {
+      // 观战者视角
+      player1El.textContent = onlineState.hostName || '玩家1';
+      player2El.textContent = onlineState.opponentName || '玩家2';
+    } else if (onlineState.playerRole === 'blue') {
+      player1El.textContent = `${onlineState.playerName} (您)`;
+      player2El.textContent = onlineState.opponentName;
+    } else {
+      player1El.textContent = onlineState.opponentName;
+      player2El.textContent = `${onlineState.playerName} (您)`;
+    }
+  }
   
   // 同步对方选择的棋子
   if (onlineState.playerRole === 'blue' && roomData.selectedPieces_red) {
@@ -217,14 +360,17 @@ function handleRoomUpdate(snapshot) {
   document.getElementById('player1-ready').textContent = roomData.player1Ready ? '已准备' : '未准备';
   document.getElementById('player2-ready').textContent = roomData.player2Ready ? '已准备' : '等待玩家...';
   
-  onlineState.opponentReady = onlineState.playerRole === 'blue' ? 
-    roomData.player2Ready : roomData.player1Ready;
-  
-  // 检查是否双方都已准备
-  if (roomData.player1Ready && roomData.player2Ready) {
-    // 开始游戏
-    if (!gameState.gameStarted) {
-      startOnlineGame();
+  // 观战者不需要同步准备状态
+  if (!onlineState.spectatorMode) {
+    onlineState.opponentReady = onlineState.playerRole === 'blue' ? 
+      roomData.player2Ready : roomData.player1Ready;
+    
+    // 检查是否双方都已准备
+    if (roomData.player1Ready && roomData.player2Ready) {
+      // 开始游戏
+      if (!gameState.gameStarted) {
+        startOnlineGame();
+      }
     }
   }
   
@@ -280,40 +426,57 @@ let processedMessageTimestamps = new Set();
 // 更新聊天消息
 function updateChatMessages(chatData) {
   // 按时间顺序排序消息
-  const messages = Object.entries(chatData)
-    .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+  const messageTimestamps = Object.keys(chatData).sort();
   
-  messages.forEach(([timestamp, message]) => {
-    // 检查是否已经处理过这条消息（避免重复添加）
-    if (processedMessageTimestamps.has(timestamp)) {
-      return;
+  // 获取房间信息以确定消息发送者身份
+  const roomRef = database.ref('rooms/' + onlineState.roomId);
+  roomRef.once('value').then((snapshot) => {
+    if (snapshot.exists()) {
+      const roomData = snapshot.val();
+      
+      messageTimestamps.forEach((timestamp) => {
+        if (processedMessageTimestamps.has(timestamp)) {
+          return;
+        }
+        
+        // 标记为已处理
+        processedMessageTimestamps.add(timestamp);
+        
+        const message = chatData[timestamp];
+        
+        // 判断消息发送者是房主、对手还是观战者
+        let senderName = '未知';
+        let messageColor = 'text-gray-300'; // 默认颜色
+        
+        // 检查是否是房主
+        if (message.sender === roomData.player1) {
+          senderName = roomData.player1Name || '玩家1';
+          messageColor = 'text-blue-300';
+        }
+        // 检查是否是对手
+        else if (message.sender === roomData.player2) {
+          senderName = roomData.player2Name || '玩家2';
+          messageColor = 'text-red-300';
+        }
+        // 检查是否是观战者
+        else if (roomData.spectators && roomData.spectators[message.sender]) {
+          senderName = roomData.spectators[message.sender] || '观战者';
+          messageColor = 'text-green-300';
+        }
+        
+        // 在主消息区域显示聊天消息，添加时间戳数据属性
+        const messageEl = document.createElement('div');
+        messageEl.classList.add('bg-gray-800/50', 'border-l-4', 'border-primary', 'p-3', 'rounded', 'text-sm');
+        messageEl.dataset.timestamp = timestamp;
+        messageEl.innerHTML = `<span class="${messageColor}">${senderName}: ${message.message}</span>`;
+        
+        messageArea.appendChild(messageEl);
+        
+        // 自动滚动到底部
+        messageArea.scrollTop = messageArea.scrollHeight;
+      });
     }
-    
-    // 标记为已处理
-    processedMessageTimestamps.add(timestamp);
-    
-    const isOwn = message.sender === onlineState.playerId;
-    const senderName = isOwn ? '你' : '对手';
-    
-    // 在主消息区域显示聊天消息，添加时间戳数据属性
-    const messageEl = document.createElement('div');
-    messageEl.classList.add('bg-gray-800/50', 'border-l-4', 'border-primary', 'p-3', 'rounded', 'text-sm');
-    messageEl.dataset.timestamp = timestamp;
-    messageEl.innerHTML = `<span class="${isOwn ? 'text-blue-300' : 'text-green-300'}">${senderName}: ${message.message}</span>`;
-    
-    messageArea.appendChild(messageEl);
   });
-  
-  messageArea.scrollTop = messageArea.scrollHeight;
-  
-  // 可选：定期清理过旧的时间戳，避免内存泄漏
-  if (processedMessageTimestamps.size > 100) {
-    const currentTime = Date.now();
-    const oneHourAgo = currentTime - 3600000;
-    processedMessageTimestamps = new Set(
-      [...processedMessageTimestamps].filter(ts => parseInt(ts) > oneHourAgo)
-    );
-  }
 }
 
 // 复制房间号
@@ -351,8 +514,20 @@ function leaveRoom() {
     const roomRef = database.ref('rooms/' + onlineState.roomId);
     roomRef.off(); // 移除监听器
     
-    // 如果是房主，删除房间
-    if (onlineState.playerRole === 'blue') {
+    if (onlineState.spectatorMode) {
+      // 观战者退出，从spectators中移除
+      roomRef.once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+          const roomData = snapshot.val();
+          if (roomData.spectators && roomData.spectators[onlineState.playerId]) {
+            const spectators = roomData.spectators;
+            delete spectators[onlineState.playerId];
+            roomRef.update({ spectators: spectators });
+          }
+        }
+      });
+    } else if (onlineState.playerRole === 'blue') {
+      // 如果是房主，删除房间
       roomRef.remove();
     } else {
       // 如果是玩家，清空玩家2信息
@@ -368,11 +543,26 @@ function leaveRoom() {
   onlineState.isReady = false;
   onlineState.opponentReady = false;
   onlineState.isOnline = false;
+  onlineState.spectatorMode = false;
+  onlineState.spectatorName = '';
   
   // 更新UI
   document.getElementById('room-section').classList.add('hidden');
   document.getElementById('ready-section').classList.add('hidden');
   document.getElementById('leave-room-btn').classList.add('hidden');
+  
+  // 恢复游戏界面上隐藏的按钮
+  // 修改：将'challenge-btn'改为'ai-challenge-btn'
+  const gameButtonsToShow = [
+    'ready-btn', 'open-pack-btn', 'reset-game-btn', 'ai-challenge-btn', 'auto-battle-btn'
+  ];
+  
+  gameButtonsToShow.forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.classList.remove('hidden');
+    }
+  });
   
   addOnlineMessage('已离开房间');
 }
@@ -496,9 +686,14 @@ function syncGameState() {
       currentPlayer: gameState.currentPlayer,
       movesRemaining: gameState.movesRemaining,
       selectedPiece: gameState.selectedPiece ? gameState.selectedPiece.id : null,
-      lastUpdatedBy: onlineState.playerId
+      lastUpdatedBy: onlineState.playerId,
+      // 添加攻击动画同步信息
+      attackAnimation: window.currentAttackAnimation || null
     }
   });
+  
+  // 清空当前攻击动画信息，避免重复同步
+  window.currentAttackAnimation = null;
 }
 
 // 应用从Firebase接收到的游戏状态
@@ -513,6 +708,18 @@ function applyGameState(remoteState) {
     gameState.selectedPiece = gameState.pieces.find(p => p.id === remoteState.selectedPiece);
   } else {
     gameState.selectedPiece = null;
+  }
+  
+  // 处理攻击动画同步
+  if (remoteState.attackAnimation && remoteState.lastUpdatedBy !== onlineState.playerId) {
+    const { attackerId, targetId } = remoteState.attackAnimation;
+    const attacker = gameState.pieces.find(p => p.id === attackerId);
+    const target = gameState.pieces.find(p => p.id === targetId);
+    
+    if (attacker && target && window.AttackAnimation && window.AttackAnimation.playAttackAnimation) {
+      // 只播放动画，不处理伤害（伤害已通过游戏状态同步）
+      window.AttackAnimation.playAttackAnimation(attacker, target, () => {});
+    }
   }
   
   // 重新渲染棋盘 - 添加错误处理
@@ -620,14 +827,21 @@ class FlowingRiver {
         this.particles = [];
         this.currentSpeed = 0.8;
         this.gradientOffset = 0;
-        this.isLevel3 = false; // 新增：标记是否为第三关
+        this.isLevel3 = false; // 标记是否为第三关
+        this.isLevel4 = false; // 新增：标记是否为第四关
         
         // 计算河流位置和大小
         const cellHeight = riverCanvas.height / gameState.boardSize.y;
         
-        // 检查是否为第三关
-        if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 3) {
-            this.isLevel3 = true; // 第三关不显示河流
+        // 检查是否为第三关或第四关
+        if (aiGameState && aiGameState.isAIMode) {
+            this.isLevel3 = aiGameState.currentLevel === 3;
+            this.isLevel4 = aiGameState.currentLevel === 4;
+        }
+        
+        // 如果是第三关或第四关，不显示河流
+        if (this.isLevel3 || this.isLevel4) {
+            return;
         } else if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 2) {
             // 第二关河流扩展
             this.riverY = (gameState.boardSize.y - 1 - 7) * cellHeight; // 上河岸从y=7开始
@@ -638,9 +852,7 @@ class FlowingRiver {
             this.riverHeight = cellHeight * 2; // 两条河流格子的高度
         }
         
-        if (!this.isLevel3) {
-            this.initParticles();
-        }
+        this.initParticles();
     }
     
     initParticles() {
@@ -690,8 +902,8 @@ class FlowingRiver {
     }
     
     draw() {
-        if (this.isLevel3) {
-            // 第三关不绘制河流
+        if (this.isLevel3 || this.isLevel4) {
+            // 第三关或第四关不绘制河流
             riverCtx.clearRect(0, 0, riverCanvas.width, riverCanvas.height);
             return;
         }
@@ -810,12 +1022,19 @@ class FlowingRiver {
         riverCanvas.width = width;
         riverCanvas.height = height;
         
-        // 重新检查是否为第三关
-        if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 3) {
-            this.isLevel3 = true;
-            this.particles = [];
+        // 重新检查关卡状态
+        if (aiGameState && aiGameState.isAIMode) {
+            this.isLevel3 = aiGameState.currentLevel === 3;
+            this.isLevel4 = aiGameState.currentLevel === 4;
         } else {
             this.isLevel3 = false;
+            this.isLevel4 = false;
+        }
+        
+        // 如果是第三关或第四关，清空粒子
+        if (this.isLevel3 || this.isLevel4) {
+            this.particles = [];
+        } else {
             // 重新计算河流位置
             const cellHeight = height / gameState.boardSize.y;
             
@@ -896,7 +1115,17 @@ function updateFilteredPokemon() {
     let filteredPokemon = pokemonData;
     
     if (selectedTypes.length > 0) {
-        filteredPokemon = pokemonData.filter(pokemon => selectedTypes.includes(pokemon.type));
+        // 修复：正确处理单属性和双属性宝可梦
+        filteredPokemon = pokemonData.filter(pokemon => {
+            // 检查pokemon.type是数组还是字符串
+            if (Array.isArray(pokemon.type)) {
+                // 对于双属性宝可梦，检查是否有任一属性匹配
+                return pokemon.type.some(type => selectedTypes.includes(type));
+            } else {
+                // 对于单属性宝可梦，直接检查
+                return selectedTypes.includes(pokemon.type);
+            }
+        });
     }
     
     // 排序宝可梦
@@ -940,15 +1169,15 @@ function updateFilteredPokemon() {
                         <div class="space-y-0.5 text-xs">
                             <div class="flex justify-between">
                                 <span class="text-gray-400">体力 (HP):</span>
-                                <span class="text-red-400">${pokemon.hp}</span>
+                                <span class="text-green-400">${pokemon.hp}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-400">攻击 (ATK):</span>
-                                <span class="text-yellow-400">${pokemon.atk}</span>
+                                <span class="text-red-400">${pokemon.atk}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-400">距离（MOVE）:</span>
-                                <span class="text-green-400">${pokemon.move}</span>
+                                <span class="text-yellow-400">${pokemon.move}</span>
                             </div>
                         </div>
                         ${getPokemonDescription(pokemon.id) ? 
@@ -1005,14 +1234,32 @@ function createPokemonPack() {
     const typeFilterButtons = document.getElementById('type-filter-buttons');
     const chevronIcon = propertyFilterBtn.querySelector('.fa-chevron-down');
     
-    propertyFilterBtn.addEventListener('click', function() {
-        typeFilterButtons.classList.toggle('max-h-0');
-        typeFilterButtons.classList.toggle('max-h-32');
-        typeFilterButtons.classList.toggle('opacity-0');
-        typeFilterButtons.classList.toggle('opacity-100');
-        chevronIcon.classList.toggle('fa-chevron-down');
-        chevronIcon.classList.toggle('fa-chevron-up');
-    });
+    // 确保元素存在再绑定事件
+    if (propertyFilterBtn && typeFilterButtons && chevronIcon) {
+        // 移除可能已存在的事件监听，避免重复绑定
+        const newPropertyFilterBtn = propertyFilterBtn.cloneNode(true);
+        propertyFilterBtn.parentNode.replaceChild(newPropertyFilterBtn, propertyFilterBtn);
+        
+        // 获取新的元素引用
+        const updatedTypeFilterButtons = document.getElementById('type-filter-buttons');
+        const updatedChevronIcon = newPropertyFilterBtn.querySelector('.fa-chevron-down');
+        
+        // 重新绑定点击事件
+        newPropertyFilterBtn.addEventListener('click', function() {
+            // 强制切换显示/隐藏状态
+            if (updatedTypeFilterButtons.classList.contains('max-h-0')) {
+                updatedTypeFilterButtons.classList.remove('max-h-0', 'opacity-0');
+                updatedTypeFilterButtons.classList.add('max-h-32', 'opacity-100');
+                updatedChevronIcon.classList.remove('fa-chevron-down');
+                updatedChevronIcon.classList.add('fa-chevron-up');
+            } else {
+                updatedTypeFilterButtons.classList.remove('max-h-32', 'opacity-100');
+                updatedTypeFilterButtons.classList.add('max-h-0', 'opacity-0');
+                updatedChevronIcon.classList.remove('fa-chevron-up');
+                updatedChevronIcon.classList.add('fa-chevron-down');
+            }
+        });
+    }
     
     // 添加重置筛选按钮事件监听
     document.getElementById('reset-filter').addEventListener('click', function() {
@@ -1168,9 +1415,10 @@ function renderPieces() {
     document.querySelectorAll('.vertical-health-container').forEach(healthBar => healthBar.remove());
     
     // 移除所有特效（取消注释下雨特效的移除）
-    if (window.pokemonAbilities && window.pokemonAbilities.kyogre) {
-        window.pokemonAbilities.kyogre.removeRainEffects();
-    }
+    // 注释掉下面两行，让下雨特效保持持续显示
+    // if (window.pokemonAbilities && window.pokemonAbilities.kyogre) {
+    //     window.pokemonAbilities.kyogre.removeRainEffects();
+    // }
     
     // 清空所有格子的角落信息
     document.querySelectorAll('.cell-corner-info').forEach(info => {
@@ -1218,9 +1466,12 @@ function renderPieces() {
         }
         
         // 检查是否为盖欧卡，放大1.75倍
-        if (piece.id && piece.id.includes('kyogre')) {
-            finalPieceSize = pieceSize * 1.75;
-        }
+if (piece.id && (piece.id.includes('kyogre') || 
+                 piece.id.includes('moltres') || 
+                 piece.id.includes('articuno') || 
+                 piece.id.includes('zapdos'))) {
+    finalPieceSize = pieceSize * 1.75;
+}
         
         // 设置位置 - 居中显示在格子内
         const left = piece.x * cellWidth + (cellWidth - finalPieceSize) / 2;
@@ -1554,6 +1805,14 @@ function selectPiece(piece) {
     
     gameState.selectedPiece = piece;
     
+    // 为非整数移动距离的棋子初始化移动状态
+    if (!piece.moveState && piece.move % 1 !== 0) {
+        piece.moveState = {
+            firstMoveUsed: false,
+            remainingMoveRange: piece.move + 0.5 // 第一次移动的最大范围为x+0.5
+        };
+    }
+    
     // 强制计算并高亮
     forceHighlightSelectedPiece();
     
@@ -1651,7 +1910,13 @@ function calculateAvailableMovesAndAttacks(piece) {
     }
     
     // 原有代码：正常计算移动范围
-    const maxDistance = piece.move;
+    // 非整数移动距离棋子的特殊处理
+    let maxDistance;
+    if (piece.moveState) {
+        maxDistance = piece.moveState.remainingMoveRange;
+    } else {
+        maxDistance = piece.move;
+    }
     
     // 处理双属性精灵
     const pieceTypes = Array.isArray(piece.type) ? piece.type : [piece.type];
@@ -1731,8 +1996,8 @@ function calculateAvailableMovesAndAttacks(piece) {
 
 // 检查是否在河流行
 function isInRiver(y) {
-    // 如果是第三关，没有河流
-    if (aiGameState && aiGameState.isAIMode && aiGameState.currentLevel === 3) {
+    // 如果是第三关或第四关，没有河流
+    if (aiGameState && aiGameState.isAIMode && (aiGameState.currentLevel === 3 || aiGameState.currentLevel === 4)) {
         return false;
     }
     
@@ -1860,6 +2125,19 @@ function handleMove(newX, newY, oldX, oldY) {
     renderPieces();
     
     addMessage(`${gameState.selectedPiece.name} 从 (${oldX},${oldY}) 移动到 (${newX},${newY})`);
+    
+    // 对于非整数移动距离的棋子，更新移动状态
+    if (gameState.selectedPiece.moveState) {
+        if (!gameState.selectedPiece.moveState.firstMoveUsed) {
+            // 第一次移动后，更新为第二次移动的范围
+            gameState.selectedPiece.moveState.firstMoveUsed = true;
+            gameState.selectedPiece.moveState.remainingMoveRange = gameState.selectedPiece.move - 0.5;
+        } else {
+            // 第二次移动后，重置移动状态
+            gameState.selectedPiece.moveState.firstMoveUsed = false;
+            gameState.selectedPiece.moveState.remainingMoveRange = gameState.selectedPiece.move + 0.5;
+        }
+    }
     
     // 减少移动次数
     gameState.movesRemaining--;
@@ -2065,6 +2343,20 @@ function handleAttack(targetId) {
         // 应用伤害
         if (!isImmune) {
             target.currentHp -= damage;
+            
+            // 添加大剑鬼50%概率额外造成0.5伤害的逻辑
+            if (attacker.name === '大剑鬼' || attacker.id === 'samurott') {
+                const criticalChance = 0.5; // 50%概率
+                if (Math.random() < criticalChance) {
+                    const extraDamage = 0.5;
+                    target.currentHp -= extraDamage;
+                    // 显示额外伤害数字
+                    setTimeout(() => {
+                        showDamagePopup(target.x, target.y, extraDamage);
+                    }, 300);
+                    addMessage(`${attacker.name} 切中敌人要害，造成了 0.5 点伤害！`);
+                }
+            }
         }
         
         if (attackerEl) {
@@ -2134,6 +2426,12 @@ function handleAttack(targetId) {
     // 检查是否为需要延迟伤害结算的动画（如巨钳螳螂的攻击模式）
     let animationDelayNeeded = false;
     if (window.AttackAnimation && window.AttackAnimation.playAttackAnimation) {
+        // 设置当前攻击动画信息，用于同步
+        window.currentAttackAnimation = {
+          attackerId: attacker.id,
+          targetId: target.id
+        };
+        
         // 对于需要延迟伤害结算的动画，传入回调函数
         animationDelayNeeded = window.AttackAnimation.playAttackAnimation(attacker, target, processDamage);
     }
@@ -2145,14 +2443,36 @@ function handleAttack(targetId) {
 }
 
 // 显示伤害数字弹窗
-function showDamagePopup(x, y, damage, isImmune = false) {
+function showDamagePopup(x, y, damage, isImmune = false, isSamurottExtra = false) {
     const popup = document.createElement('div');
     popup.classList.add('damage-popup');
     
     if (isImmune) {
         popup.textContent = '免疫';
     } else {
-        popup.textContent = damage;
+        // 如果是大剑鬼的额外伤害，添加暴击图标
+        if (isSamurottExtra) {
+            // 创建伤害文本
+            const damageText = document.createElement('span');
+            damageText.textContent = damage;
+            damageText.style.color = 'blue';
+            popup.appendChild(damageText);
+            
+            // 创建暴击图标（使用CSS实现一个简单的星形图标）
+            const critIcon = document.createElement('span');
+            critIcon.textContent = '✦'; // 使用Unicode星形符号作为暴击图标
+            critIcon.style.color = 'blue';
+            critIcon.style.marginLeft = '2px'; // 图标与文本之间的间距
+            popup.appendChild(critIcon);
+        } else {
+            popup.textContent = damage;
+        }
+    }
+    
+    // 样式设置
+    if (isSamurottExtra) {
+        popup.style.transform = 'translate(-50%, 0) scale(3)';
+        popup.style.fontSize = 'inherit'; // 确保字体大小一致
     }
     
     const boardWidth = gameBoard.clientWidth;
@@ -2165,7 +2485,9 @@ function showDamagePopup(x, y, damage, isImmune = false) {
     
     popup.style.left = `${left}px`;
     popup.style.top = `${top}px`;
-    popup.style.transform = 'translate(-50%, 0)';
+    if (!isSamurottExtra) {
+        popup.style.transform = 'translate(-50%, 0)';
+    }
     
     gameBoard.appendChild(popup);
     
@@ -2339,6 +2661,17 @@ function switchTurn() {
     
     gameState.movesRemaining = 2;
     updateMoveCounter();
+    
+    // 重置所有非整数移动范围棋子的移动状态
+    const isAIMode = aiGameState && aiGameState.isAIMode;
+    if (!isAIMode) {
+        gameState.pieces.forEach(piece => {
+            if (piece.moveState && piece.color === gameState.currentPlayer) {
+                piece.moveState.firstMoveUsed = false;
+                piece.moveState.remainingMoveRange = piece.move + 0.5;
+            }
+        });
+    }
     
     // 清除选择状态
     deselectPiece();
@@ -2524,6 +2857,16 @@ function resetGame() {
     window.primalKyogreEffects.removeEffects();
   }
   
+  // 新增：清除第四关山脉背景层
+  const mountainLayer = document.querySelector('.mountain-overlay');
+  if (mountainLayer) {
+    mountainLayer.remove();
+  }
+  
+  // 新增：移除关卡特殊类，恢复星空背景
+  const gameBoard = document.getElementById('game-board');
+  gameBoard.classList.remove('ai-level-1', 'ai-level-2', 'ai-level-3', 'ai-level-4');
+  
   // 新增：重新初始化河流效果
   if (typeof initRiverCanvas === 'function') {
     initRiverCanvas();
@@ -2655,27 +2998,27 @@ function setupEventListeners() {
     
     // 发送消息函数
     function sendUserMessage() {
-        const messageText = messageInput.value.trim();
-        if (!messageText) return;
+      const messageText = messageInput.value.trim();
+      if (!messageText) return;
+      
+      if (onlineState.isOnline && onlineState.roomId) {
+        // 联机模式下通过Firebase发送消息
+        const roomRef = database.ref('rooms/' + onlineState.roomId + '/chat');
+        const messageId = Date.now();
         
-        if (onlineState.isOnline && onlineState.roomId) {
-            // 联机模式下通过Firebase发送消息
-            const roomRef = database.ref('rooms/' + onlineState.roomId + '/chat');
-            const messageId = Date.now();
-            
-            roomRef.update({
-                [messageId]: {
-                    sender: onlineState.playerId,
-                    message: messageText,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                }
-            });
-        } else {
-            // 单机模式下直接在本地显示
-            addMessage(`<span class="text-blue-300">你: ${messageText}</span>`);
-        }
-        
-        messageInput.value = '';
+        roomRef.update({
+          [messageId]: {
+            sender: onlineState.playerId,
+            message: messageText,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+          }
+        });
+      } else {
+        // 单机模式下直接在本地显示
+        addMessage(`<span class="text-blue-300">${onlineState.playerName}: ${messageText}</span>`);
+      }
+      
+      messageInput.value = '';
     }
     
     // 按钮点击发送
@@ -2803,4 +3146,15 @@ function setupRedeemCodeFeature() {
 }
 
 // 初始化游戏
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('load', () => {
+  // 联机对战相关事件监听
+  document.getElementById('create-room-btn').addEventListener('click', createRoom);
+  document.getElementById('join-room-btn').addEventListener('click', joinRoom);
+  document.getElementById('spectate-room-btn').addEventListener('click', joinRoomAsSpectator); // 添加观战按钮监听
+  document.getElementById('close-online-btn').addEventListener('click', closeOnlineModal);
+  document.getElementById('copy-room-btn').addEventListener('click', copyRoomCode);
+  document.getElementById('ready-btn').addEventListener('click', toggleReady);
+  document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
+  
+  init();
+});
