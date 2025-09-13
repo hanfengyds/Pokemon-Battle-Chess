@@ -2,11 +2,13 @@
 window.LEVEL_MESSAGES = {
   VICTORY: {
     LEVEL_1: "<span style='color:rgb(85, 187, 255);'>漂亮的胜利！看样子你已经摸清了海洋的性格，踏上征途，向未知的远方航行吧。</span>",
-    LEVEL_2: "<span style='color:rgb(85, 187, 255);'>恭喜你平息了大海的愤怒！暴雨已经停息了，该收拾收拾，向着下个目标进发了！</span>"
+    LEVEL_2: "<span style='color:rgb(85, 187, 255);'>恭喜你平息了大海的愤怒！暴雨已经停息了，该收拾收拾，向着下个目标进发了！</span>",
+    LEVEL_3: "<span style='color:rgb(242, 129, 0);'>看来是我低估了你！如此恶劣的地形和天气都被你突破了！！</span>",
   },
   DEFEAT: {
     LEVEL_1: "<span style='color:rgb(85, 187, 255);'>真是可惜，或许你距离扬帆起航只差一艘更坚实的船也说不定...</span>",
-    LEVEL_2: "<span style='color:rgb(85, 187, 255);'>惨烈！你终究没能征服巨浪...在自然的伟力面前，难道生命就如此弱小吗？</span>"
+    LEVEL_2: "<span style='color:rgb(85, 187, 255);'>惨烈！你终究没能征服巨浪...在自然的伟力面前，难道生命就如此弱小吗？</span>",
+    LEVEL_3: "<span style='color:rgb(242, 129, 0);'>登山者，不必沮丧，山就在那里，你随时可以再次挑战它！</span>",
   }
 };
 // 旁白播报系统
@@ -104,7 +106,7 @@ function initNarrationSystem() {
             z-index: 1000;
             opacity: 0;
             transition: opacity 0.8s ease-in-out;
-            max-width: 70%;
+            max-width: 80%;
             text-align: center;
         }
         
@@ -132,7 +134,7 @@ function showAILevel1Narration() {
   initNarrationSystem();
 
   // 显示第一关特定旁白文本
-  showNarration('循着记忆里裂空座坠落的方向，你来到了这条星空中的——河？', 4000);
+  showNarration('循着记忆里裂空座坠落的方向，你来到了这条星空中的——河？', 3000);
 }
 
 /**
@@ -143,7 +145,7 @@ function showAILevel2Narration() {
   initNarrationSystem();
 
   // 显示第二关特定旁白文本
-  showNarration('你试着向水流的更深处探索，那个家伙被你彻底惹怒...', 4000);
+  showNarration('你试着向水流的更深处探索，那个家伙被你彻底惹怒...', 3000);
 }
 
 /**
@@ -154,7 +156,18 @@ function showAILevel3Narration() {
   initNarrationSystem();
 
   // 显示第三关特定旁白文本
-  showNarration('终于看到陆地了...不对，那个区域怎么都是沙子？', 4000);
+  showNarration('终于看到陆地了...那个区域怎么都是沙子、岩石、仙人掌？', 3000);
+}
+
+/**
+ * 显示AI闯关第四关特定旁白
+ */
+function showAILevel4Narration() {
+  // 初始化旁白系统
+  initNarrationSystem();
+
+  // 显示第四关特定旁白文本
+  showNarration('又一个旅者来了，你也有驾驭天空的力量吗？', 3000);
 }
 
 // 监听URL参数变化，检测是否进入关卡
@@ -178,6 +191,12 @@ function checkForAILevel() {
   // 如果URL中有第三关参数
   if (level === '3') {
     setTimeout(showAILevel3Narration, 1000);
+    return true;
+  }
+  
+  // 如果URL中有第四关参数
+  if (level === '4') {
+    setTimeout(showAILevel4Narration, 1000);
     return true;
   }
 
@@ -229,6 +248,13 @@ if (typeof window !== 'undefined') {
                     setTimeout(showAILevel3Narration, 1000);
                   });
                 }
+                // 处理第四关
+                else if (level === 4) {
+                  levelEl.addEventListener('click', () => {
+                    // 第四关被选中，延迟显示旁白以确保游戏初始化完成
+                    setTimeout(showAILevel4Narration, 1000);
+                  });
+                }
               });
             }, 500);
           });
@@ -248,3 +274,18 @@ if (typeof window !== 'undefined') {
 window.showAILevel1Narration = showAILevel1Narration;
 window.showAILevel2Narration = showAILevel2Narration;
 window.showAILevel3Narration = showAILevel3Narration;
+// 在showAILevel4Narration函数后添加
+
+/**
+ * 显示三神鸟提示浮窗
+ */
+function showLegendaryBirdsMessage() {
+    // 初始化旁白系统
+    initNarrationSystem();
+    
+    // 使用现有的旁白系统显示消息
+    showNarration('神鸟卷起旋风，他们只允许三位猛士登上山顶！', 4000);
+}
+
+// 在文件末尾暴露函数到全局
+window.showLegendaryBirdsMessage = showLegendaryBirdsMessage;
