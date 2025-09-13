@@ -194,6 +194,17 @@ const pokemonAbilities = {
             // 记录已经吞噬过的棋子
             gameState.devouredPieces.push(targetId);
             
+            // 播放吞噬音效
+            try {
+                const audio = new Audio('sound/吞噬.MP3');
+                audio.volume = 0.7;
+                audio.play().catch(error => {
+                    console.warn('无法播放吞噬音效:', error);
+                });
+            } catch (error) {
+                console.warn('创建音频元素失败:', error);
+            }
+            
             addMessage(`${attacker.name} 吞噬了友方 ${target.name}，获得了 ${hpGain} 点体力！`);
             
             // 重新渲染
