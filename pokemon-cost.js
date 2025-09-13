@@ -41,6 +41,7 @@ const pokemonBorderMapping = {
     // 恶食大王 - 紫色边框
     'guzzlord': 'purple',
     'scizor': 'blue',
+    'samurott':'blue',
     
     
     // 您可以在这里添加其他宝可梦的边框映射
@@ -117,7 +118,7 @@ const pokemonDescriptions = {
     'guzzlord': '吞噬一名己方棋子，至多获取其5点体力，能够突破血量上限',
     'scizor': '每回合一次，对路径上的首个敌人造成1点钢属性伤害',
     // 您可以在这里添加其他宝可梦的介绍
-    // 'pikachu': '电系宝可梦，拥有强大的电击能力',
+    'samurott': '攻击有50%概率切中要害，额外造成0.5伤害',
     // 'bulbasaur': '草系宝可梦，能够使用藤鞭攻击'
 };
 
