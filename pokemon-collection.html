@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>宝可梦特殊战棋卡册</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
@@ -73,7 +73,8 @@
     <!-- 顶部导航 -->
     <header class="bg-neutral shadow-lg py-4 px-6">
         <div class="flex items-center justify-between">
-            <button onclick="window.location.href='index.html'" class="text-gray-300 hover:text-white flex items-center text-sm transition-colors">
+            <button onclick="window.location.href='index.html'"
+                class="text-gray-300 hover:text-white flex items-center text-sm transition-colors">
                 <i class="fa fa-arrow-left mr-1"></i> 返回主页
             </button>
         </div>
@@ -84,14 +85,14 @@
             </h1>
         </div>
         <div class="w-24"></div> <!-- 为了平衡布局的空元素 -->
-    </div>
-</header>
+        </div>
+    </header>
 
     <!-- 主内容区域 -->
     <main class="container mx-auto px-4 py-8">
         <div class="text-center mb-8">
-            <p <span class="text-blue-400">三费（blue）</span> <span class="text-purple-400">四费（purple）</span> ，<span
-                    class="text-yellow-400">五费（yellow）</span>，<span class="text-red-400">六费（red）</span></p>
+            <p <span class="text-blue-400">三费（blue）</span> <span class="text-purple-400">四费（purple）</span><span
+                    class="text-yellow-400">五费（yellow）</span><span class="text-red-400">六费（red）</span></p>
         </div>
 
         <!-- 卡片展示区域 -->
@@ -154,9 +155,13 @@
 
         // 宝可梦介绍文本映射
         const pokemonDescriptions = {
-            'magnezone': '把射程内的钢系精灵，向指定方向移动一格',
-            'sizor': '每回合一次，对路径上的首个敌人造成1点钢属',
+            'minior-meteor': '血量降低至一半时，变为[核心状态]',
+            'minior': '核心状态',
+            'magnezone': '操控3距离内的钢系精灵，向指定方向移动一格',
+            'scizor': '消耗两个移动点，对路径上的首个敌人造成1点钢属性伤害',
+            'samurott': '攻击有50%概率切中要害，额外造成0.5伤害',
             'guzzlord': '吞噬一名己方棋子，至多获取其5点体力，能够突破血量上限',
+            'tyranitar': '在周围引起沙暴，地岩钢之外的精灵会受到损伤，岩石系精灵获得1.5的护盾加持',
             'kyogre': '在周围降下雨天，水系棋子攻击+1，火系棋子攻击-1',
             'kyogre-primal': '在棋盘降下暴雨，开辟水系区域，使场上火系伤害归零',
             'rayquaza-mega': '消除一切天气，屏蔽飞行系精灵弱点，可以通过舞动使自己[ATK+1, MOVE+1]',
@@ -164,14 +169,21 @@
             'deoxys-atk': '代欧奇希斯将细胞集中于脑核，最大化[进攻]能力',
             'deoxys-def': '代欧奇希斯将细胞集中于盔甲，最大化[防御]能力',
             'deoxys-spe': '代欧奇希斯将细胞集中于下肢，最大化[移动]能力',
+            'moltres':'对目标身后两格内的敌人，造成1点的火系贯穿伤害',
+            'zapdos':'对目标身后两格内的敌人，造成1点的电属性贯穿伤害',
+            'articuno':'对目标身后两格内的敌人，造成1点的冰属性贯穿伤害',
         };
 
         // 获取宝可梦边框样式
         function getPokemonBorderStyle(pokemonId) {
-            if (pokemonId === 'magnezone'|| pokemonId === 'scizor') {
+            if (pokemonId === 'magnezone' ||pokemonId === 'samurott' || pokemonId === 'scizor'|| pokemonId === 'minior-meteor'|| pokemonId === 'minior') {
+
                 return pokemonBorderStyles.blue;
             }
-            if (pokemonId === 'guzzlord') {
+            if (pokemonId === 'guzzlord' || pokemonId === 'tyranitar') {
+                return pokemonBorderStyles.purple;
+            }
+            if (pokemonId === 'moltres' || pokemonId === 'zapdos' || pokemonId === 'articuno') {
                 return pokemonBorderStyles.purple;
             }
             if (pokemonId === 'kyogre') {
@@ -197,6 +209,26 @@
 
         // 宝可梦数据
         const pokemonData = [
+                {
+                id: 'minior-meteor',
+                name: '小陨星（流星）',
+                hp: 3,
+                atk: 1.5,
+                move: 2,
+                type: ['rock', 'flying'],
+                typeName: ['岩石', '飞行'],
+                image: 'ai-pokemon/小陨星（流星）.gif'
+            },
+                {
+                id: 'minior',
+                name: '小陨星',
+                hp: 1.5,
+                atk: 2,
+                move: 2.5,
+                type: ['rock', 'flying'],
+                typeName: ['岩石', '飞行'],
+                image: 'ai-pokemon/小陨星.gif'
+            },
             {
                 id: 'magnezone',
                 name: '自爆磁怪',
@@ -217,6 +249,16 @@
                 typeName: ['虫', '钢'],
                 image: 'ai-pokemon/巨钳螳螂.gif',
             },
+                    {
+            id: 'samurott',
+            name: '大剑鬼',
+            hp: 3,
+            atk: 2,
+            move: 2,
+            type: 'water',
+            typeName: '水',
+            image: 'player-pokemon/大剑鬼.gif'
+        },
             {
                 id: 'guzzlord',
                 name: '恶食大王',
@@ -227,6 +269,43 @@
                 typeName: ['恶', '龙'],
                 image: 'player-pokemon/恶食大王.gif',
             },
+            {
+                id: 'tyranitar',
+                name: '班基拉斯',
+                hp: 5.5,
+                atk: 2,
+                move: 1,
+                type: ['rock', 'dark'],
+                typeName: ['岩石', '恶'],
+                image: 'ai-pokemon/班基拉斯.gif',
+            },
+                                 { id: 'moltres',
+        name: '火焰鸟',
+        hp: 4.5,
+        atk: 2,
+        move: 2,
+        type: ['fire','flying'],
+        typeName: ['火','飞行'],
+        image: 'ai-pokemon/火焰鸟.gif',
+    },
+        { id: 'zapdos',
+        name: '闪电鸟',
+        hp: 4.5,
+        atk: 2,
+        move: 2,
+        type: ['electric','flying'],
+        typeName: ['电','飞行'],
+        image: 'ai-pokemon/闪电鸟.gif',
+    },
+        { id: 'articuno',
+        name: '急冻鸟',
+        hp: 4.5,
+        atk: 2,
+        move: 2,
+        type: ['ice','flying'],
+        typeName: ['冰','飞行'],
+        image: 'ai-pokemon/急冻鸟.gif',
+    },
             {
                 id: 'kyogre',
                 name: '盖欧卡',
