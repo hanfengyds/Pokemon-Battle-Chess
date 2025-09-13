@@ -5,7 +5,7 @@
             name: '龙卷云',
             hp: 3,
             atk: 2,
-            move: 3,
+            move: 3.5,
             type: 'flying',
             typeName: '飞行',
             image: 'player-pokemon/龙卷云.gif'
@@ -25,7 +25,7 @@
             name: '雷伊布',
             hp: 2.5,
             atk: 2,
-            move: 3,
+            move: 3.5,
             type: 'electric',
             typeName: '电',
             image: 'player-pokemon/雷伊布.gif'
@@ -65,7 +65,7 @@
             name: '敏捷虫',
             hp: 2,
             atk: 1.5,
-            move: 4,
+            move: 3.5,
             type: 'bug',
             typeName: '虫',
             image: 'player-pokemon/敏捷虫.gif'
@@ -85,7 +85,7 @@
             name: '吉利蛋',
             hp: 8,
             atk: 1,
-            move: 1,
+            move: 1.5,
             type: 'normal',
             typeName: '一般',
             image: 'player-pokemon/吉利蛋.gif'
@@ -134,8 +134,8 @@
             id: 'haxorus',
             name: '双斧战龙',
             hp: 3,
-            atk: 2.5,
-            move: 2,
+            atk: 2,
+            move: 2.5,
             type: 'dragon',
             typeName: '龙',
             image: 'player-pokemon/双斧战龙.gif'
@@ -155,7 +155,7 @@
             name: '大钢蛇',
             hp: 4.5,
             atk: 2,
-            move: 2,
+            move: 1.5,
             type: ['steel','ground'],
             typeName: ['铁','地面'],
             image: 'player-pokemon/大钢蛇.gif'
