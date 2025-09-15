@@ -13,6 +13,10 @@ const gameState = {
     devouredPieces: [] // 新增：记录恶食大王已经吞噬过的友军棋子ID
 };
 
+// 添加全局动画状态追踪
+let animationPlaying = false;
+let animationTimeout = null;
+
 // 确保pokemonData是全局可访问的
 window.pokemonData = pokemonData;
 
@@ -84,7 +88,16 @@ function init() {
     initOnline();
     initAIGame(); // 添加这行代码
     setupRedeemCodeFeature(); // 添加兑换码功能
+    
+    // 添加战棋道具初始化
+    if (typeof initChessItems === 'function') {
+        initChessItems();
+    }
+    
     addMessage('欢迎来到宝可梦象棋！请先打开棋包选择你的6个宝可梦');
+    
+    // 添加这行来初始化当前玩家显示
+    updateCurrentPlayerDisplay();
 }
 
 // 确保属性筛选按钮正确创建
@@ -1148,6 +1161,17 @@ function updateFilteredPokemon() {
         // 应用边框样式
         applyBorderToPokemonCard(card, pokemon.id);
         
+        // 检查宝可梦是否佩戴了道具
+        let equippedItemHtml = '';
+        if (typeof window !== 'undefined' && window.getEquippedItem) {
+            const equippedItem = window.getEquippedItem(pokemon.id);
+            if (equippedItem) {
+                equippedItemHtml = `<div class="absolute top-2 left-2 bg-gray-800 bg-opacity-80 p-1 rounded-full item-icon">
+                    <img src="${equippedItem.image}" alt="${equippedItem.name}" class="w-6 h-6 object-contain">
+                </div>`;
+            }
+        }
+        
         card.innerHTML = `
                     <div class="relative">
                         <img src="${pokemon.image}" alt="${pokemon.name}" class="w-full h-32 object-contain bg-gray-800">
@@ -1160,7 +1184,8 @@ function updateFilteredPokemon() {
                                 `<img src="type/${pokemon.type}.png" alt="${pokemon.typeName}系" class="type-icon">`
                             }
                         </div>
-                        <div class="absolute top-2 left-2 bg-primary/80 text-white text-xs px-2 py-1 rounded-full select-indicator hidden">
+                        ${equippedItemHtml}
+                        <div class="absolute top-2 left-2 bg-green-600  text-white text-xs px-2 py-1 rounded-full select-indicator hidden">
                             已选择
                         </div>
                     </div>
@@ -1669,10 +1694,23 @@ function forceHighlightSelectedPiece() {
 function handleCellClick(x, y) {
     if (!gameState.gameStarted) return;
     
-    // AI模式下，如果是AI回合，不允许玩家操作
-    if (aiGameState && aiGameState.isAIMode && aiGameState.aiTurn) {
-        addMessage('AI回合中，请等待AI行动完成', 'error');
+    // 添加动画状态检查
+    if (animationPlaying) {
+        addMessage('动画播放中，请等待...', 'error');
         return;
+    }
+    
+    // AI模式下，如果是AI回合或不是蓝色方回合，不允许玩家操作
+    if (aiGameState && aiGameState.isAIMode) {
+        if (aiGameState.aiTurn) {
+            addMessage('AI回合中，请等待AI行动完成', 'error');
+            return;
+        }
+        // 新增：AI模式下，玩家只能在蓝色方回合操作
+        if (gameState.currentPlayer !== 'blue') {
+            addMessage('不是你的回合！', 'error');
+            return;
+        }
     }
     
     // 在线模式下，如果不是当前玩家回合，不允许操作
@@ -2411,34 +2449,74 @@ function handleAttack(targetId) {
         // 同步到Firebase
         syncGameState();
         
-        // 检查是否需要切换回合
-        if (gameState.movesRemaining <= 0) {
-            switchTurn();
-        } else {
-            // 仍然有移动次数，保持选中状态
-            selectPiece(attacker);
-        }
-        
         // 确保攻击后边框正确显示
         updatePieceBorders();
+        
+        // 检查是否需要切换回合 - 关键点：这应该是函数的最后操作
+        if (gameState.movesRemaining <= 0) {
+            // 确保在动画完全完成后再切换回合
+            setTimeout(() => {
+                if (aiGameState && aiGameState.isAIMode) {
+                    aiGameState.aiTurn = true;
+                    // 先切换回合再执行AI行动
+                    switchTurn();
+                    setTimeout(() => {
+                        aiTurn(); // 开始AI回合
+                    }, 500);
+                } else {
+                    switchTurn();
+                }
+            }, 500);
+        } else {
+            // 仍然有移动次数，保持选中状态
+            setTimeout(() => selectPiece(attacker), 100);
+        }
     }
     
-    // 检查是否为需要延迟伤害结算的动画（如巨钳螳螂的攻击模式）
+    // 检查是否为需要延迟伤害结算的动画
     let animationDelayNeeded = false;
     if (window.AttackAnimation && window.AttackAnimation.playAttackAnimation) {
-        // 设置当前攻击动画信息，用于同步
         window.currentAttackAnimation = {
           attackerId: attacker.id,
           targetId: target.id
         };
         
-        // 对于需要延迟伤害结算的动画，传入回调函数
-        animationDelayNeeded = window.AttackAnimation.playAttackAnimation(attacker, target, processDamage);
+        // 设置全局动画状态
+        animationPlaying = true;
+        
+        // 清除之前的超时
+        if (animationTimeout) {
+            clearTimeout(animationTimeout);
+        }
+        
+        // 添加动画超时保护（10秒）
+        animationTimeout = setTimeout(() => {
+            console.warn('Animation timed out, forcing completion');
+            animationPlaying = false;
+            processDamage();
+        }, 10000);
+        
+        // 包装processDamage函数，确保重置动画状态
+        const wrappedProcessDamage = () => {
+            // 清除超时
+            if (animationTimeout) {
+                clearTimeout(animationTimeout);
+                animationTimeout = null;
+            }
+            animationPlaying = false;
+            processDamage();
+        };
+        
+        animationDelayNeeded = window.AttackAnimation.playAttackAnimation(attacker, target, wrappedProcessDamage);
     }
     
     // 如果不需要延迟伤害结算，则立即处理
     if (!animationDelayNeeded) {
-        setTimeout(processDamage, 500); // 保持原有的延迟时间
+        // 添加短暂延迟让动画效果显示
+        setTimeout(() => {
+            animationPlaying = false;
+            processDamage();
+        }, 500);
     }
 }
 
@@ -2655,12 +2733,37 @@ function updateMoveCounter() {
     movesRemainingEl.textContent = gameState.movesRemaining;
 }
 
+// 在updateMoveCounter函数附近添加更新当前玩家显示的函数
+function updateCurrentPlayerDisplay() {
+    const playerColorEl = document.getElementById('player-color');
+    if (playerColorEl) {
+        // 更新玩家文本
+        playerColorEl.textContent = gameState.currentPlayer === 'blue' ? '蓝色方' : '红色方';
+        
+        // 更新文本颜色
+        if (gameState.currentPlayer === 'blue') {
+            playerColorEl.className = 'text-blue-400';
+        } else {
+            playerColorEl.className = 'text-red-400';
+        }
+    }
+}
+
 // 切换回合 - 修改为通过消息区域播报
 function switchTurn() {
+    // 如果有动画正在播放，延迟切换回合
+    if (animationPlaying) {
+        setTimeout(switchTurn, 100);
+        return;
+    }
+    
     gameState.currentPlayer = gameState.currentPlayer === 'blue' ? 'red' : 'blue';
     
     gameState.movesRemaining = 2;
     updateMoveCounter();
+    
+    // 添加这行来更新当前玩家显示
+    updateCurrentPlayerDisplay();
     
     // 重置所有非整数移动范围棋子的移动状态
     const isAIMode = aiGameState && aiGameState.isAIMode;
@@ -2720,6 +2823,13 @@ function checkGameEnd() {
             addMessage(LEVEL_MESSAGES.VICTORY.LEVEL_1);
         } else if (aiGameState.isAIMode && aiGameState.currentLevel === 2) {
             addMessage(LEVEL_MESSAGES.VICTORY.LEVEL_2);
+        } else if (aiGameState.isAIMode && aiGameState.currentLevel === 4) {
+            // 添加第四关通关的处理
+            addMessage('蓝色方获胜！游戏结束');
+            // 调用通关提示消息函数
+            if (typeof window.showFourthLevelCompletionMessage === 'function') {
+                window.showFourthLevelCompletionMessage();
+            }
         } else {
             addMessage('蓝色方获胜！游戏结束');
         }
@@ -2813,93 +2923,20 @@ function resetGame() {
     }
   }
   
-  // 清理定时器
-  if (borderUpdateInterval) {
-      clearInterval(borderUpdateInterval);
-      borderUpdateInterval = null;
-  }
-  
-  // 实际重置游戏逻辑
-  gameState.gameStarted = false;
-  gameState.currentPlayer = 'blue';
-  gameState.movesRemaining = 2;
-  gameState.selectedPiece = null;
-  gameState.availableMoves = [];
-  gameState.attackablePieces = [];
-  gameState.swappablePieces = []; // 清空可交换列表
-  gameState.pieces = [];
-  gameState.devouredPieces = []; // 新增：清空已吞噬的棋子记录
-  
-  document.querySelectorAll('.piece').forEach(piece => piece.remove());
-  
-  // 移除所有血量条
-  document.querySelectorAll('.vertical-health-container').forEach(healthBar => healthBar.remove());
-  
-  clearAllHighlights();
-  
-  // 清空所有格子的角落信息
-  document.querySelectorAll('.cell-corner-info').forEach(info => {
-    info.innerHTML = '';
-  });
-  
-  // 新增：清除盖欧卡下雨特效
-  if (window.pokemonAbilities && window.pokemonAbilities.kyogre && window.pokemonAbilities.kyogre.removeRainEffects) {
-    window.pokemonAbilities.kyogre.removeRainEffects();
-  }
-  
-  // 新增：清除班基拉斯沙尘暴特效
-  if (window.pokemonAbilities && window.pokemonAbilities.tyranitar && window.pokemonAbilities.tyranitar.removeSandstormEffects) {
-    window.pokemonAbilities.tyranitar.removeSandstormEffects();
-  }
-  
-  // 新增：清除原始盖欧卡全棋盘下雨特效
-  if (window.primalKyogreEffects && window.primalKyogreEffects.removeEffects) {
-    window.primalKyogreEffects.removeEffects();
-  }
-  
-  // 新增：清除第四关山脉背景层
-  const mountainLayer = document.querySelector('.mountain-overlay');
-  if (mountainLayer) {
-    mountainLayer.remove();
-  }
-  
-  // 新增：移除关卡特殊类，恢复星空背景
-  const gameBoard = document.getElementById('game-board');
-  gameBoard.classList.remove('ai-level-1', 'ai-level-2', 'ai-level-3', 'ai-level-4');
-  
-  // 新增：重新初始化河流效果
-  if (typeof initRiverCanvas === 'function') {
-    initRiverCanvas();
-  }
-  
-  updateMoveCounter();
-  
-  // 重置投票状态
-  if (onlineState.isOnline) {
-    onlineState.resetVote.requested = false;
-    onlineState.resetVote.voted = false;
-    onlineState.resetVote.opponentVoted = false;
-  }
-  
-  // 恢复联机按钮（如果处于AI模式）
-  if (aiGameState && aiGameState.isAIMode) {
-    document.getElementById('online-btn').style.display = 'block';
-    aiGameState.isAIMode = false;
-    aiGameState.currentLevel = null;
-    aiGameState.aiTurn = false;
-  }
-  
-  addMessage('游戏已重置，请点击开始游戏');
+  // 单机模式：直接刷新网页
+  window.location.reload();
 }
 
 // 实际执行重置的函数
 function performActualReset() {
+  // 联机模式仍然需要这个函数处理重置投票后的操作
   // 清理定时器
   if (borderUpdateInterval) {
       clearInterval(borderUpdateInterval);
       borderUpdateInterval = null;
   }
   
+  // 这里可以保留最小化的重置逻辑，仅用于联机模式
   gameState.gameStarted = false;
   gameState.currentPlayer = 'blue';
   gameState.movesRemaining = 2;
@@ -2908,52 +2945,15 @@ function performActualReset() {
   gameState.attackablePieces = [];
   gameState.swappablePieces = [];
   gameState.pieces = [];
-  gameState.devouredPieces = []; // 新增：清空已吞噬的棋子记录
   
+  // 移除所有棋子和UI元素
   document.querySelectorAll('.piece').forEach(piece => piece.remove());
-  
-  // 移除所有血量条
   document.querySelectorAll('.vertical-health-container').forEach(healthBar => healthBar.remove());
   
-  clearAllHighlights();
-  
-  document.querySelectorAll('.cell-corner-info').forEach(info => {
-    info.innerHTML = '';
-  });
-  
-  // 新增：清除盖欧卡下雨特效
-  if (window.pokemonAbilities && window.pokemonAbilities.kyogre && window.pokemonAbilities.kyogre.removeRainEffects) {
-    window.pokemonAbilities.kyogre.removeRainEffects();
-  }
-  
-  // 新增：清除班基拉斯沙尘暴特效
-  if (window.pokemonAbilities && window.pokemonAbilities.tyranitar && window.pokemonAbilities.tyranitar.removeSandstormEffects) {
-    window.pokemonAbilities.tyranitar.removeSandstormEffects();
-  }
-  
-  // 新增：清除原始盖欧卡全棋盘下雨特效
-  if (window.primalKyogreEffects && window.primalKyogreEffects.removeEffects) {
-    window.primalKyogreEffects.removeEffects();
-  }
-  
-  // 新增：重新初始化河流效果
-  if (typeof initRiverCanvas === 'function') {
-    initRiverCanvas();
-  }
-  
-  updateMoveCounter();
-  
+  // 清空在线投票状态
   onlineState.resetVote.requested = false;
   onlineState.resetVote.voted = false;
   onlineState.resetVote.opponentVoted = false;
-  
-  // 恢复联机按钮（如果处于AI模式）
-  if (aiGameState && aiGameState.isAIMode) {
-    document.getElementById('online-btn').style.display = 'block';
-    aiGameState.isAIMode = false;
-    aiGameState.currentLevel = null;
-    aiGameState.aiTurn = false;
-  }
   
   addMessage('<span class="text-green-300">投票通过！游戏已重置</span>');
 }
@@ -2986,7 +2986,16 @@ function setupEventListeners() {
         }
     });
    
-    resetGameBtn.addEventListener('click', resetGame);
+    // 修改重置游戏按钮的事件监听
+resetGameBtn.addEventListener('click', () => {
+    // 在联机模式下保持原来的投票逻辑
+    if (onlineState.isOnline && onlineState.roomId) {
+        resetGame();
+    } else {
+        // 单机模式下，直接刷新网页，等同于重置游戏
+        window.location.reload();
+    }
+});
     
     rulesBtn.addEventListener('click', () => {
         rulesModal.classList.remove('hidden');
@@ -3144,6 +3153,42 @@ function setupRedeemCodeFeature() {
         }
     });
 }
+
+// 活动浮窗控制
+function setupEventsModal() {
+    const eventsModal = document.getElementById('events-modal');
+    const eventsBtn = document.getElementById('events-btn');
+    const closeEventsBtn = document.getElementById('close-events-btn');
+    
+    // 打开活动浮窗
+    if (eventsBtn && eventsModal) {
+        eventsBtn.addEventListener('click', () => {
+            eventsModal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        });
+    }
+    
+    // 关闭活动浮窗
+    if (closeEventsBtn && eventsModal) {
+        closeEventsBtn.addEventListener('click', () => {
+            eventsModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        });
+    }
+    
+    // 点击浮窗外部关闭
+    if (eventsModal) {
+        eventsModal.addEventListener('click', (e) => {
+            if (e.target === eventsModal) {
+                eventsModal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+        });
+    }
+}
+
+// 初始化活动浮窗
+setupEventsModal();
 
 // 初始化游戏
 window.addEventListener('load', () => {
