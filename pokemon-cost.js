@@ -6,28 +6,28 @@ const pokemonBorderStyles = {
         boxShadow: '0 0 8px rgba(94, 94, 94, 0.4)',
         borderRadius: '6px'
     },
-    
+
     // 绿色边框 - 草系/恢复类宝可梦
     green: {
         border: '2px solid #4CAF50',
         boxShadow: '0 0 10px rgba(76, 175, 80, 0.5)',
         borderRadius: '6px'
     },
-    
+
     // 蓝色边框 - 水系/防御类宝可梦
     blue: {
         border: '2px solid #2196F3',
         boxShadow: '0 0 10px rgba(33, 150, 243, 0.5)',
         borderRadius: '6px'
     },
-    
+
     // 紫色边框 - 恶系/特殊能力宝可梦（如恶食大王）
     purple: {
         border: '3px solid #8B5FBF',
         boxShadow: '0 0 12px rgba(139, 95, 191, 0.6)',
         borderRadius: '8px'
     },
-    
+
     // 黄色边框 - 电系/高攻击宝可梦
     yellow: {
         border: '2px solid #FFD700',
@@ -41,9 +41,12 @@ const pokemonBorderMapping = {
     // 恶食大王 - 紫色边框
     'guzzlord': 'purple',
     'scizor': 'blue',
-    'samurott':'blue',
-    
-    
+    'samurott': 'blue',
+    'moltres': 'purple',
+    'zapdos': 'purple',
+    'articuno': 'purple',
+
+
     // 您可以在这里添加其他宝可梦的边框映射
     // 'pikachu': 'yellow',
     // 'bulbasaur': 'green',
@@ -64,7 +67,7 @@ function getPokemonBorderStyle(pokemonId) {
 // 应用边框样式到宝可梦卡片
 function applyBorderToPokemonCard(cardElement, pokemonId) {
     const style = getPokemonBorderStyle(pokemonId);
-    
+
     // 应用CSS样式
     cardElement.style.border = style.border;
     cardElement.style.boxShadow = style.boxShadow;
@@ -75,7 +78,7 @@ function applyBorderToPokemonCard(cardElement, pokemonId) {
 // 获取宝可梦介绍文本的边框和背景颜色
 function getPokemonDescriptionStyle(pokemonId) {
     const borderColor = pokemonBorderMapping[pokemonId];
-    
+
     const styleMap = {
         'purple': {
             border: 'border-purple-700',
@@ -103,11 +106,11 @@ function getPokemonDescriptionStyle(pokemonId) {
             text: 'text-gray-200'
         }
     };
-    
+
     if (borderColor && styleMap[borderColor]) {
         return styleMap[borderColor];
     }
-    
+
     // 默认返回白色边框对应的样式
     return styleMap.white;
 }
@@ -117,11 +120,13 @@ const pokemonDescriptions = {
     // 恶食大王介绍
     'guzzlord': '吞噬一名己方棋子，至多获取其5点体力，能够突破血量上限',
     'scizor': '每回合一次，对路径上的首个敌人造成1点钢属性伤害',
-    // 您可以在这里添加其他宝可梦的介绍
     'samurott': '攻击有50%概率切中要害，额外造成0.5伤害',
+    'moltres': '对目标身后两格内的敌人，造成1点的火系贯穿伤害',
+    'zapdos': '对目标身后两格内的敌人，造成1点的电属性贯穿伤害',
+    'articuno': '对目标身后两格内的敌人，造成1点的冰属性贯穿伤害',
     // 'bulbasaur': '草系宝可梦，能够使用藤鞭攻击'
 };
-
+/* */
 // 获取宝可梦介绍文本
 function getPokemonDescription(pokemonId) {
     return pokemonDescriptions[pokemonId] || '';
