@@ -1094,7 +1094,7 @@
 
 /* 为第四关添加山脉背景 */
 #game-board.ai-level-4 {
-    background-image: url('background/山脉.png');
+    background-image: url('background/山巅.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
