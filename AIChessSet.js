@@ -94,7 +94,7 @@ const aiPokemonData = [
         name: '班基拉斯',
         hp: 5.5,
         atk: 2,
-        move: 1,
+        move: 2,
         type: ['rock','dark'],
         typeName: ['岩石','恶'],
         image: 'ai-pokemon/班基拉斯.gif',
@@ -156,8 +156,8 @@ const aiPokemonData = [
     },
         { id: 'moltres',
         name: '火焰鸟',
-        hp: 1.5,
-        atk: 3,
+        hp: 5.5,
+        atk: 2.5,
         move: 2,
         type: ['fire','flying'],
         typeName: ['火','飞行'],
@@ -165,16 +165,16 @@ const aiPokemonData = [
     },
         { id: 'zapdos',
         name: '闪电鸟',
-        hp: 1.5,
+        hp: 4.5,
         atk: 2,
-        move: 3,
+        move: 2,
         type: ['electric','flying'],
         typeName: ['电','飞行'],
         image: 'ai-pokemon/闪电鸟.gif',
     },
         { id: 'articuno',
         name: '急冻鸟',
-        hp: 1.5,
+        hp: 6.5,
         atk: 1.5,
         move: 2,
         type: ['ice','flying'],
@@ -209,7 +209,7 @@ const aiPokemonData = [
         move: 2,
         type: ['psychic','flying'],
         typeName: ['超能','飞行'],
-        image: 'ai-pokemon/lugia.gif',
+        image: 'ai-pokemon/洛奇亚.gif',
     }
 ];
 
@@ -357,11 +357,13 @@ const aiLevels = [
             aiPokemonData.find(p => p.id === 'moltres'),//火焰鸟
             aiPokemonData.find(p => p.id === 'zapdos'), // 闪电鸟
             aiPokemonData.find(p => p.id === 'articuno'), //急冻鸟
+            aiPokemonData.find(p => p.id === 'lugia'), //急冻鸟
         ],
         initialPositions: [
             { x: 1, y: 2 }, // 火焰鸟
-            { x: 3, y: 2 }, // 闪电鸟
-            { x: 5, y: 2 },  // 急冻鸟
+            { x: 4, y: 3 }, // 闪电鸟
+            { x: 7, y: 2 },  // 急冻鸟
+            { x: 4, y: 1 },  // 洛奇亚
         ]
     }
 ];
