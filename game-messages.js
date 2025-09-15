@@ -287,5 +287,141 @@ function showLegendaryBirdsMessage() {
     showNarration('神鸟卷起旋风，他们只允许三位猛士登上山顶！', 4000);
 }
 
+// 在文件末尾添加
+
+/**
+ * 更新三神鸟领取按钮状态
+ */
+// 如果game-messages.js文件中存在updateLegendaryBirdsButtons函数，修改它
+function updateLegendaryBirdsButtons() {
+    try {
+        // 检查是否已通关第四关
+        const hasCompletedFourthLevel = localStorage.getItem('fourthLevelCompleted') === 'true';
+        
+        // 获取领取按钮
+        const moltresBtn = document.getElementById('redeem-moltres-btn');
+        const zapdosBtn = document.getElementById('redeem-zapdos-btn');
+        const articunoBtn = document.getElementById('redeem-articuno-btn');
+        
+        // 按钮配置数组
+        const buttons = [
+            { btn: moltresBtn, code: 'moltres123698745' },
+            { btn: zapdosBtn, code: 'zapdos789632541' },
+            { btn: articunoBtn, code: 'articuno457896321' }
+        ];
+        
+        // 如果已通关第四关，启用按钮
+        if (hasCompletedFourthLevel) {
+            buttons.forEach(({ btn, code }) => {
+                if (btn) {
+                    // 更改按钮样式为绿色可点击状态
+                    btn.classList.remove('bg-gray-600', 'hover:bg-gray-500', 'cursor-not-allowed', 'opacity-50');
+                    btn.classList.add('bg-green-600', 'hover:bg-green-500', 'cursor-pointer', 'opacity-100');
+                    
+                    // 添加点击事件，触发兑换码输入
+                    btn.addEventListener('click', function() {
+                        // 查找兑换码相关元素
+                        const redeemModal = document.getElementById('redeem-modal');
+                        const redeemCodeInput = document.getElementById('redeem-code-input');
+                        const confirmRedeemBtn = document.getElementById('confirm-redeem-btn');
+                        
+                        if (redeemModal && redeemCodeInput && confirmRedeemBtn) {
+                            // 如果活动浮窗是打开的，先关闭它
+                            const eventsModal = document.getElementById('events-modal');
+                            if (eventsModal && !eventsModal.classList.contains('hidden')) {
+                                eventsModal.classList.add('hidden');
+                                document.body.classList.remove('overflow-hidden');
+                            }
+                            
+                            // 打开兑换码弹窗
+                            redeemModal.classList.remove('hidden');
+                            document.body.classList.add('overflow-hidden');
+                            
+                            // 输入兑换码
+                            redeemCodeInput.value = code;
+                            
+                            // 触发兑换码验证（短暂延迟确保弹窗已完全打开）
+                            setTimeout(() => {
+                                const event = new MouseEvent('click', {
+                                    bubbles: true,
+                                    cancelable: true,
+                                    view: window
+                                });
+                                confirmRedeemBtn.dispatchEvent(event);
+                            }, 500);
+                        }
+                    });
+                }
+            });
+        }
+        
+        // 检查是否已经领取过任意一只神鸟
+        const hasMoltres = localStorage.getItem('hasMoltres') === 'true';
+        const hasZapdos = localStorage.getItem('hasZapdos') === 'true';
+        const hasArticuno = localStorage.getItem('hasArticuno') === 'true';
+        
+        // 如果已经领取过任意一只神鸟，禁用其他神鸟的领取按钮
+        if (hasMoltres || hasZapdos || hasArticuno) {
+            const moltresBtn = document.getElementById('redeem-moltres-btn');
+            const zapdosBtn = document.getElementById('redeem-zapdos-btn');
+            const articunoBtn = document.getElementById('redeem-articuno-btn');
+            
+            // 禁用未领取的神鸟按钮
+            if (moltresBtn && !hasMoltres) {
+                moltresBtn.disabled = true;
+                moltresBtn.classList.add('bg-gray-600', 'cursor-not-allowed', 'opacity-50');
+                moltresBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                moltresBtn.onclick = null;
+            }
+            
+            if (zapdosBtn && !hasZapdos) {
+                zapdosBtn.disabled = true;
+                zapdosBtn.classList.add('bg-gray-600', 'cursor-not-allowed', 'opacity-50');
+                zapdosBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
+                zapdosBtn.onclick = null;
+            }
+            
+            if (articunoBtn && !hasArticuno) {
+                articunoBtn.disabled = true;
+                articunoBtn.classList.add('bg-gray-600', 'cursor-not-allowed', 'opacity-50');
+                articunoBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                articunoBtn.onclick = null;
+            }
+        }
+    } catch (error) {
+        console.error('更新三神鸟按钮状态时出错:', error);
+    }
+}
+
+// 暴露函数到全局
+window.updateLegendaryBirdsButtons = updateLegendaryBirdsButtons;
+
+// 在DOM加载完成后检查通关状态并更新按钮
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', updateLegendaryBirdsButtons);
+}
+
+// 修改showFourthLevelCompletionMessage函数，添加保存通关状态的逻辑
+function showFourthLevelCompletionMessage() {
+    // 初始化旁白系统
+    initNarrationSystem();
+    
+    // 使用现有的旁白系统显示通关提示消息
+    showNarration('恭喜你通过了考验，选择一份力量带走吧，是熊熊的烈焰，是颤瑟的雷电，还是刺骨的寒风？', 6000);
+    
+    // 保存第四关通关状态到localStorage
+    try {
+        localStorage.setItem('fourthLevelCompleted', 'true');
+        console.log('第四关通关状态已保存');
+        
+        // 尝试立即更新三神鸟领取按钮状态
+        setTimeout(updateLegendaryBirdsButtons, 1000);
+    } catch (error) {
+        console.error('保存第四关通关状态时出错:', error);
+    }
+}
+
+// 暴露函数到全局，以便其他脚本可以调用
+window.showFourthLevelCompletionMessage = showFourthLevelCompletionMessage;
 // 在文件末尾暴露函数到全局
 window.showLegendaryBirdsMessage = showLegendaryBirdsMessage;
