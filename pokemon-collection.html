@@ -162,6 +162,7 @@
             'samurott': '攻击有50%概率切中要害，额外造成0.5伤害',
             'guzzlord': '吞噬一名己方棋子，至多获取其5点体力，能够突破血量上限',
             'tyranitar': '在周围引起沙暴，地岩钢之外的精灵会受到损伤，岩石系精灵获得1.5的护盾加持',
+            'lugia': '满血时，至多受到1点伤害，攻击会对目标背后直线造成1.5点飞行系伤害',
             'kyogre': '在周围降下雨天，水系棋子攻击+1，火系棋子攻击-1',
             'kyogre-primal': '在棋盘降下暴雨，开辟水系区域，使场上火系伤害归零',
             'rayquaza-mega': '消除一切天气，屏蔽飞行系精灵弱点，可以通过舞动使自己[ATK+1, MOVE+1]',
@@ -186,7 +187,7 @@
             if (pokemonId === 'moltres' || pokemonId === 'zapdos' || pokemonId === 'articuno') {
                 return pokemonBorderStyles.purple;
             }
-            if (pokemonId === 'kyogre') {
+            if (pokemonId === 'kyogre'|| pokemonId === 'lugia') {
                 return pokemonBorderStyles.yellow;
 
             }
@@ -281,7 +282,7 @@
             },
                                  { id: 'moltres',
         name: '火焰鸟',
-        hp: 4.5,
+        hp: 5.5,
         atk: 2,
         move: 2,
         type: ['fire','flying'],
@@ -292,19 +293,29 @@
         name: '闪电鸟',
         hp: 4.5,
         atk: 2,
-        move: 2,
+        move: 2.5,
         type: ['electric','flying'],
         typeName: ['电','飞行'],
         image: 'ai-pokemon/闪电鸟.gif',
     },
         { id: 'articuno',
         name: '急冻鸟',
-        hp: 4.5,
-        atk: 2,
+        hp: 6.5,
+        atk: 1.5,
         move: 2,
         type: ['ice','flying'],
         typeName: ['冰','飞行'],
         image: 'ai-pokemon/急冻鸟.gif',
+    },
+            { 
+        id: 'lugia',
+        name: '洛奇亚',
+        hp: 8.5,
+        atk: 2,
+        move: 2.5,
+        type: ['psychic','flying'],
+        typeName: ['超能','飞行'],
+        image: 'ai-pokemon/洛奇亚.gif',
     },
             {
                 id: 'kyogre',
