@@ -39,6 +39,11 @@ window.AttackAnimation = {
             this.playBirdWhirlwindAnimation(attacker, target, 'blue', callback);
             return true; // 需要延迟伤害结算
         }
+        // 检查攻击者是否为洛奇亚
+        else if (attacker.name === '洛奇亚' || attacker.id === 'lugia' || attacker.id === 'lugia-final-boss') {
+            this.playLugiaCycloneAnimation(attacker, target, callback);
+            return true; // 需要延迟伤害结算
+        }
         // 可以在这里添加其他宝可梦的攻击动画
         return false;
     },
@@ -283,7 +288,6 @@ window.AttackAnimation = {
      * @param {string} color - 旋风颜色 ('red'|'yellow'|'blue')
      * @param {Function} callback - 动画结束后的回调函数（用于伤害结算）
      */
-    // 播放三圣鸟的旋风攻击动画
     playBirdWhirlwindAnimation: function(attacker, target, color, callback) {
         const gameBoard = document.getElementById('game-board');
         if (!gameBoard || !attacker || !target) {
@@ -291,7 +295,7 @@ window.AttackAnimation = {
             if (callback) callback();
             return;
         }
-        
+    
         // 获取游戏面板尺寸和格子大小
         const boardWidth = gameBoard.clientWidth;
         const boardHeight = gameBoard.clientHeight;
@@ -311,7 +315,7 @@ window.AttackAnimation = {
         const gifPaths = {
             red: 'video/旋风（火焰鸟）.gif',    // 红色对应火焰鸟
             yellow: 'video/旋风（闪电鸟）.gif',  // 黄色对应闪电鸟
-            blue: 'video/旋风（急冻鸟）.gif'     // 蓝色对应急冻鸟
+            blue: 'video/旋风（急冻鸟）.gif'     // 蓝色对急冻鸟
         };
         
         // 设置GIF图片，默认使用火焰鸟的GIF
@@ -388,105 +392,155 @@ window.AttackAnimation = {
                 gameBoard.removeChild(whirlwindContainer);
             }
             enhancedCallback();
-        }, 2000);
+        }, 3000); // 增加到3秒以确保动画完全播放
     },
     
     /**
-     * 处理三圣鸟的范围伤害
-     * @param {Object} attacker - 攻击者宝可梦
-     * @param {Object} target - 主要攻击目标
-     * @param {string} color - 旋风颜色，用于判断宝可梦类型
+     * 播放洛奇亚的气旋攻击动画
+     * @param {Object} attacker - 攻击者宝可梦（洛奇亚）
+     * @param {Object} target - 被攻击目标宝可梦
+     * @param {Function} callback - 动画结束后的回调函数（用于伤害结算）
      */
-    processAreaDamage: function(attacker, target, color) {
+    playLugiaCycloneAnimation: function(attacker, target, callback) {
+        const gameBoard = document.getElementById('game-board');
+        if (!gameBoard || !attacker || !target) {
+            console.warn('无效的参数，无法播放洛奇亚气旋动画');
+            if (callback) callback();
+            return;
+        }
+    
+        // 获取游戏面板尺寸和格子大小
+        const boardWidth = gameBoard.clientWidth;
+        const boardHeight = gameBoard.clientHeight;
+        const cellWidth = boardWidth / gameState.boardSize.x;
+        const cellHeight = boardHeight / gameState.boardSize.y;
+    
+        // 计算攻击者和目标的中心坐标
+        const attackerCenterX = attacker.x * cellWidth + cellWidth / 2;
+        const attackerCenterY = (gameState.boardSize.y - 1 - attacker.y) * cellHeight + cellHeight / 2;
+        const targetCenterX = target.x * cellWidth + cellWidth / 2;
+        const targetCenterY = (gameState.boardSize.y - 1 - target.y) * cellHeight + cellHeight / 2;
+    
+        // 创建气旋GIF容器
+        const cycloneContainer = document.createElement('img');
+    
+        // 设置气旋GIF
+        cycloneContainer.src = 'video/气旋攻击.gif';
+        cycloneContainer.alt = '洛奇亚气旋攻击';
+    
+        // 添加到游戏面板
+        gameBoard.appendChild(cycloneContainer);
+    
+        // 设置基础样式
+        cycloneContainer.style.position = 'absolute';
+        cycloneContainer.style.left = `${attackerCenterX}px`;
+        cycloneContainer.style.top = `${attackerCenterY}px`;
+        cycloneContainer.style.width = '180px';
+        cycloneContainer.style.height = '180px';
+        cycloneContainer.style.transform = 'translate(-50%, -50%)';
+        cycloneContainer.style.zIndex = '999';
+        cycloneContainer.style.pointerEvents = 'none';
+    
+        // 播放旋风（飞）音效
+        try {
+            const audio = new Audio('sound/气旋攻击.MP3');
+            audio.volume = 0.7;
+            audio.play().catch(error => {
+                console.warn('无法播放旋风音效:', error);
+            });
+        } catch (error) {
+            console.warn('创建音频元素失败:', error);
+        }
+    
+        // 计算攻击方向和终点位置（超出棋盘边缘）
+        const dx = targetCenterX - attackerCenterX;
+        const dy = targetCenterY - attackerCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+    
+        // 计算延伸到棋盘边缘的终点位置
+        const extensionFactor = (Math.sqrt(boardWidth * boardWidth + boardHeight * boardHeight) * 2) / distance;
+        const endX = attackerCenterX + dx * extensionFactor;
+        const endY = attackerCenterY + dy * extensionFactor;
+    
+        // 增加动画持续时间到3秒，确保GIF有足够时间显示
+        cycloneContainer.style.transition = 'left 3s linear, top 3s linear, opacity 3s linear';
+    
+        // 使用setTimeout强制浏览器重排，确保动画能正确触发
+        setTimeout(() => {
+            // 应用终点位置和淡出效果
+            cycloneContainer.style.left = `${endX}px`;
+            cycloneContainer.style.top = `${endY}px`;
+            cycloneContainer.style.opacity = '0';
+        }, 10);
+    
+        // 修改回调函数，添加范围伤害处理
+        const enhancedCallback = () => {
+            // 处理主要目标伤害（原有逻辑）
+            if (callback) {
+                callback();
+            }
+    
+            // 计算目标背后的直线上所有敌人并造成飞行系伤害
+            this.processLugiaLinearDamage(attacker, target);
+        };
+    
+        // 增加动画持续时间到3秒，确保GIF能完整播放
+        setTimeout(() => {
+            if (cycloneContainer.parentNode) {
+                gameBoard.removeChild(cycloneContainer);
+            }
+            enhancedCallback();
+        }, 3000); // 增加到3秒以确保动画完全播放
+    },
+    
+    /**
+     * 处理洛奇亚的直线伤害
+     * @param {Object} attacker - 攻击者宝可梦（洛奇亚）
+     * @param {Object} target - 主要攻击目标
+     */
+    processLugiaLinearDamage: function(attacker, target) {
         // 确定攻击方向（从攻击者到目标）
         const directionX = target.x > attacker.x ? 1 : (target.x < attacker.x ? -1 : 0);
         const directionY = target.y > attacker.y ? 1 : (target.y < attacker.y ? -1 : 0);
-        
-        // 确定宝可梦类型和对应属性
-        let areaAttackType = '';
-        let typeName = '';
-        
-        switch(color) {
-            case 'red':
-                areaAttackType = 'fire';  // 火焰鸟 - 火属性范围伤害
-                typeName = '火';
-                break;
-            case 'yellow':
-                areaAttackType = 'electric'; // 闪电鸟 - 电属性范围伤害
-                typeName = '电';
-                break;
-            case 'blue':
-                areaAttackType = 'ice';   // 急冻鸟 - 冰属性范围伤害
-                typeName = '冰';
-                break;
-            default:
-                areaAttackType = 'normal';
-                typeName = '普通';
-        }
-        
-        // 获取目标背后的直线两格和斜向两格内的所有敌方宝可梦
+    
+        // 飞行属性
+        const attackType = 'flying';
+        const typeName = '飞行';
+    
+        // 获取目标背后的直线上的所有敌方宝可梦
         const areaTargets = [];
-        
-        // 1. 目标背后的直线两格
-        for (let i = 1; i <= 2; i++) {
-            const checkX = target.x + directionX * i;
-            const checkY = target.y + directionY * i;
+    
+        // 沿着目标背后的直线检查所有格子
+        let checkX = target.x + directionX;
+        let checkY = target.y + directionY;
+    
+        while (checkX >= 0 && checkX < gameState.boardSize.x && 
+               checkY >= 0 && checkY < gameState.boardSize.y) {
+            const piece = gameState.pieces.find(p => p.x === checkX && p.y === checkY && p.player !== attacker.player);
+            if (piece && piece.currentHp > 0 && piece.id !== target.id) {
+                areaTargets.push(piece);
+            }
             
-            // 检查坐标是否在棋盘范围内
-            if (checkX >= 0 && checkX < gameState.boardSize.x && 
-                checkY >= 0 && checkY < gameState.boardSize.y) {
-                
-                const piece = gameState.pieces.find(p => p.x === checkX && p.y === checkY && p.player !== attacker.player);
-                if (piece && piece.currentHp > 0 && piece.id !== target.id) {
-                    areaTargets.push(piece);
-                }
-            }
+            // 继续沿着直线检查下一个格子
+            checkX += directionX;
+            checkY += directionY;
         }
-        
-        // 2. 目标背后的斜向两格（闪电鸟的特性，但这里对所有三圣鸟都适用）
-        const diagonalDirections = [];
-        
-        // 右上斜向
-        if (directionX !== 0 || directionY !== 0) {
-            diagonalDirections.push({x: directionX, y: directionY + 1});
-            diagonalDirections.push({x: directionX + 1, y: directionY});
-            diagonalDirections.push({x: directionX, y: directionY - 1});
-            diagonalDirections.push({x: directionX - 1, y: directionY});
-        }
-        
-        // 检查斜向两格
-        for (let i = 1; i <= 2; i++) {
-            for (const dir of diagonalDirections) {
-                const checkX = target.x + dir.x * i;
-                const checkY = target.y + dir.y * i;
-                
-                // 检查坐标是否在棋盘范围内
-                if (checkX >= 0 && checkX < gameState.boardSize.x && 
-                    checkY >= 0 && checkY < gameState.boardSize.y) {
-                    
-                    const piece = gameState.pieces.find(p => p.x === checkX && p.y === checkY && p.player !== attacker.player);
-                    if (piece && piece.currentHp > 0 && piece.id !== target.id) {
-                        // 避免重复添加
-                        if (!areaTargets.some(t => t.id === piece.id)) {
-                            areaTargets.push(piece);
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 对每个范围内的目标造成基于属性的伤害
+    
+        // 对每个范围内的目标造成1.5倍飞行系伤害
         for (const areaTarget of areaTargets) {
             // 计算基于属性的伤害（考虑克制、抵抗和免疫）
-            const damageInfo = this.calculateTypeDamage(areaAttackType, areaTarget);
+            const damageInfo = this.calculateTypeDamage(attackType, areaTarget);
             
             if (!damageInfo.isImmune) {
+                // 基础伤害为1.5，再乘以属性伤害倍数
+                const finalDamage = Math.floor(1.5 * damageInfo.damage);
+                
                 // 造成伤害
-                areaTarget.currentHp -= damageInfo.damage;
-                
+                areaTarget.currentHp -= finalDamage;
+    
                 // 显示伤害数字
-                showDamagePopup(areaTarget.x, areaTarget.y, damageInfo.damage);
-                
+                showDamagePopup(areaTarget.x, areaTarget.y, finalDamage);
+    
                 // 添加范围伤害消息
                 let effectText = '';
                 if (damageInfo.isSuperEffective) {
@@ -494,22 +548,22 @@ window.AttackAnimation = {
                 } else if (damageInfo.isNotEffective) {
                     effectText = '效果不好...';
                 }
-                
-                addMessage(`${attacker.name} 的${typeName}旋风余波对 ${areaTarget.name} ${effectText} 造成了 ${damageInfo.damage} 点伤害！`);
-                
+    
+                addMessage(`${attacker.name} 的气旋攻击对 ${areaTarget.name} ${effectText} 造成了 ${finalDamage} 点飞行系伤害！`);
+    
                 // 检查目标是否被击败
                 if (areaTarget.currentHp <= 0) {
                     gameState.pieces = gameState.pieces.filter(p => p.id !== areaTarget.id);
-                    addMessage(`${areaTarget.name} 被${typeName}旋风的余波击败了！`);
+                    addMessage(`${areaTarget.name} 被气旋攻击击败了！`);
                     checkGameEnd();
                 }
             } else {
                 // 显示免疫效果
                 showDamagePopup(areaTarget.x, areaTarget.y, '免疫', true);
-                addMessage(`${areaTarget.name} 对${typeName}属性攻击免疫！`);
+                addMessage(`${areaTarget.name} 对飞行属性攻击免疫！`);
             }
         }
-        
+    
         // 重新渲染棋盘
         renderPieces();
     },
@@ -547,9 +601,10 @@ window.AttackAnimation = {
         const typeNames = {
             fire: '火',
             electric: '电',
-            ice: '冰'
+            ice: '冰',
+            flying: '飞行'
         };
-        
+    
         return typeNames[type] || '';
     },
     
@@ -594,14 +649,14 @@ window.AttackAnimation = {
             isNotEffective: false,    // 是否效果不好
             isImmune: false           // 是否免疫
         };
-        
+    
         // 检查属性免疫
         if (this.checkTypeImmunity(attackerType, target)) {
             result.isImmune = true;
             result.damage = 0;
             return result;
         }
-        
+    
         // 获取属性克制关系（如果有typeChart）
         if (window.typeChart && window.typeChart[attackerType]) {
             const typeData = window.typeChart[attackerType];
@@ -620,11 +675,11 @@ window.AttackAnimation = {
                     result.isSuperEffective = true;
                 }
             }
-            
+    
             // 根据伤害倍数调整伤害值
             result.damage = Math.floor(result.damage * damageMultiplier);
         }
-        
+    
         return result;
     }
 };
