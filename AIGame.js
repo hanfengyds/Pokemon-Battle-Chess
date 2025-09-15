@@ -186,27 +186,47 @@ function startAIChallenge(level) {
 // AI回合逻辑
 function aiTurn() {
     if (!aiGameState.isAIMode || !aiGameState.aiTurn) return;
-    
+
     addMessage('AI正在思考...');
-    
+
     // 记录已执行的行动次数
     let actionsTaken = 0;
     
+    // 重置全局动画状态
+    window.animationPlaying = false;
+    
+    // 初始化AI的剩余行动点
+    gameState.movesRemaining = 2;
+    updateMoveCounter();
+
     const executeAIAction = () => {
         if (actionsTaken >= 2) {
             // 已经执行了两次行动，结束回合
-            switchTurn();
             aiGameState.aiTurn = false;
+            // 确保所有动画完成后再切换回合
+            setTimeout(() => {
+                if (!window.animationPlaying) {
+                    switchTurn();
+                } else {
+                    setTimeout(executeAIAction, 100);
+                }
+            }, 500);
             return;
         }
         
+        // 如果有动画正在播放，等待动画完成
+        if (window.animationPlaying) {
+            setTimeout(executeAIAction, 500);
+            return;
+        }
+
         // AI决策：优先攻击，其次移动
         let actionTaken = false;
-        
+
         // 1. 检查是否有可攻击的目标
         for (const aiPiece of aiGameState.aiPieces) {
             if (aiPiece.currentHp <= 0) continue;
-            
+
             const { attackable } = calculateAvailableMovesAndAttacks(aiPiece);
             if (attackable.length > 0) {
                 // 选择伤害最大的目标
@@ -214,31 +234,40 @@ function aiTurn() {
                     const damage = calculateDamage(aiPiece, target);
                     return damage > calculateDamage(aiPiece, best) ? target : best;
                 }, attackable[0]);
-                
+
                 // 执行攻击 - 使用专门的AI攻击函数
-                executeAIAttack(aiPiece, bestTarget);
+                executeAIAttack(aiPiece, bestTarget, () => {
+                    // 动画完成回调
+                    animationPlaying = false;
+                    actionsTaken++;
+                    // 减少AI剩余行动点并更新UI
+                    gameState.movesRemaining--;
+                    updateMoveCounter();
+                    // 确保第二次行动有足够的延迟，让视觉效果更好
+                    setTimeout(executeAIAction, 1000);
+                });
                 actionTaken = true;
                 break;
             }
         }
-        
+
         // 2. 如果没有可攻击的目标，尝试移动
         if (!actionTaken) {
             // 找到所有可移动的AI棋子并评估最佳移动
             const moveEvaluations = [];
-            
+
             // 记录已经移动过的棋子，避免重复移动同一个棋子
             const movedPieces = new Set();
-            
+
             for (const aiPiece of aiGameState.aiPieces) {
                 if (aiPiece.currentHp <= 0 || movedPieces.has(aiPiece.id)) continue;
-                
+
                 const { moves } = calculateAvailableMovesAndAttacks(aiPiece);
                 if (moves.length > 0) {
                     // 评估每个移动位置的得分
                     for (const move of moves) {
                         let score = 0;
-                        
+
                         // 计算到最近敌人的距离（负分，距离越近越好）
                         const playerPieces = gameState.pieces.filter(p => p.player === 'blue');
                         if (playerPieces.length > 0) {
@@ -246,7 +275,7 @@ function aiTurn() {
                                 Math.abs(move.x - p.x) + Math.abs(move.y - p.y)
                             ));
                             score -= minDistance * 2; // 距离越近得分越高
-                            
+
                             // 新添加：检查移动路径上是否有障碍物阻挡
                             if (aiGameState.currentLevel === 3) { // 只在第三关应用此逻辑
                                 // 获取从当前位置到目标位置的直线路径上的所有格子
@@ -256,13 +285,13 @@ function aiTurn() {
                                 }
                             }
                         }
-                        
+
                         // 如果是水系精灵，检查是否在盖欧卡降雨范围内
                         if (aiPiece.type === 'water' && window.pokemonAbilities && window.pokemonAbilities.kyogre) {
                             const kyogrePieces = gameState.pieces.filter(p => 
                                 p.player === 'red' && p.id && p.id.includes('kyogre') && p.currentHp > 0
                             );
-                            
+
                             for (const kyogre of kyogrePieces) {
                                 const distanceX = Math.abs(move.x - kyogre.x);
                                 const distanceY = Math.abs(move.y - kyogre.y);
@@ -272,7 +301,7 @@ function aiTurn() {
                                 }
                             }
                         }
-                        
+
                         // 计算潜在伤害（基于移动后能攻击的目标），考虑类型克制
                         const tempPiece = {...aiPiece, x: move.x, y: move.y, player: aiPiece.player};
                         const { attackable: potentialTargets } = calculateAvailableMovesAndAttacks(tempPiece);
@@ -281,23 +310,23 @@ function aiTurn() {
                                 calculateDamage(tempPiece, target)
                             ));
                             score += maxDamage * 4; // 增加潜在伤害的权重
-                            
+
                             // 额外加分：如果移动后能攻击到被克制的目标
                             const typeAdvantageTargets = potentialTargets.filter(target => {
                                 const damage = calculateDamage(tempPiece, target);
                                 return damage > tempPiece.attack; // 伤害高于基础攻击力表示有克制
                             });
-                            
+
                             if (typeAdvantageTargets.length > 0) {
                                 score += 20; // 类型克制额外加分
                             }
                         }
-                        
+
                         // 如果是盖欧卡，降低移动优先级，让其他水系精灵先移动
                         if (aiPiece.id && aiPiece.id.includes('kyogre')) {
                             score -= 5; // 降低盖欧卡移动优先级
                         }
-                        
+
                         moveEvaluations.push({
                             piece: aiPiece,
                             move: move,
@@ -306,84 +335,95 @@ function aiTurn() {
                     }
                 }
             }
-            
+
             // 选择得分最高的移动
             if (moveEvaluations.length > 0) {
                 const bestMove = moveEvaluations.reduce((best, eval) => 
                     eval.score > best.score ? eval : best
                 );
-                
+
                 // 记录已经移动的棋子
                 movedPieces.add(bestMove.piece.id);
-                
+
                 // 执行移动
                 executeAIMove(bestMove.piece, bestMove.move);
                 actionTaken = true;
+                
+                // 移动完成后更新行动点
+                actionsTaken++;
+                gameState.movesRemaining--;
+                updateMoveCounter();
             }
         }
-        
+
         // 3. 如果没有任何行动，结束回合
         if (!actionTaken) {
             addMessage('AI没有可执行的行动，结束回合');
-            switchTurn();
-            aiGameState.aiTurn = false;
-            return;
         }
-        
-        // 等待行动完成后增加计数并执行下一次行动
-        setTimeout(() => {
-            actionsTaken++;
-            executeAIAction();
-        }, 1500);
+
+        // 如果是移动操作而不是攻击，直接进行下一次行动
+        if (!animationPlaying && actionTaken) {
+            setTimeout(() => {
+                executeAIAction();
+            }, 1500);
+        }
     };
-    
+
     // 开始执行第一次行动
     setTimeout(executeAIAction, 1000);
 }
 
-// 专门的AI攻击函数
-function executeAIAttack(attacker, target) {
+// 专门的AI攻击函数 - 修改为接收完成回调参数
+function executeAIAttack(attacker, target, actionCompleteCallback) {
     selectPiece(attacker);
-    
+
     // 计算伤害
     const damage = calculateDamage(attacker, target);
-    
+
     // 定义处理伤害结算的函数
     function processDamage() {
         // 应用伤害
         target.currentHp -= damage;
-        
+
         addMessage(`AI的 ${attacker.name} 攻击了 ${target.name}，造成了 ${damage} 点伤害！`);
-        
+
         // 检查目标是否被击败
         if (target.currentHp <= 0) {
             gameState.pieces = gameState.pieces.filter(p => p.id !== target.id);
             addMessage(`${target.name} 被击败了！`);
             checkGameEnd();
         }
-        
+
         // 重新渲染
         renderPieces();
+        
+        // 伤害结算完成后，通知行动完成
+        if (actionCompleteCallback) {
+            actionCompleteCallback();
+        }
     }
-    
+
+    // 设置动画播放标志
+    animationPlaying = true;
+
     // 检查是否需要播放攻击动画 - 这是之前缺失的关键部分！
     let animationDelayNeeded = false;
     if (window.AttackAnimation && window.AttackAnimation.playAttackAnimation) {
         // 调用与玩家攻击相同的动画系统
         animationDelayNeeded = window.AttackAnimation.playAttackAnimation(attacker, target, processDamage);
     }
-    
+
     // 如果不需要延迟伤害结算，则立即处理
     if (!animationDelayNeeded) {
         setTimeout(processDamage, 500);
     }
-    
+
     // 在伤害处理完成后添加检测
     if (aiGameState.currentLevel === 4) {
         const legendaryBirds = gameState.pieces.filter(p => 
             ['zapdos', 'moltres', 'articuno'].some(bird => p.id.includes(bird))
         );
-        
+
         if (legendaryBirds.length === 0) {
             // 生成洛奇亚
             const lugia = aiPokemonData.find(p => p.id === 'lugia');
@@ -395,7 +435,7 @@ function executeAIAttack(attacker, target) {
                 player: 'red',
                 id: 'lugia-final-boss'
             });
-            
+
             // 显示阶段结束提示
             showPhase1EndMessage();
             renderPieces();
