@@ -26,13 +26,13 @@ const evolutionStones = [
         description: "蕴含神奇的力量，可以让胡地超级进化",
         image: "items/超级胡地进化石.png"
     },
-        {
+    {
         id: "scizor-stone",
         name: "超级巨钳螳螂进化石",
         description: "蕴含神奇的力量，可以让巨钳螳螂超级进化",
         image: "items/超级巨钳螳螂进化石.png"
     },
-            {
+    {
         id: "gengar-stone",
         name: "超级耿鬼进化石",
         description: "蕴含神奇的力量，可以让耿鬼超级进化",
@@ -87,6 +87,7 @@ function createChessItemsModal() {
 let wornStones = {};
 
 // 清除其他已佩戴的进化石（互斥佩戴限制）
+// 首先，在clearOtherWornStones函数中添加恢复普通大钢蛇的逻辑
 function clearOtherWornStones(currentStoneId) {
     // 遍历所有进化石
     evolutionStones.forEach(stone => {
@@ -94,16 +95,16 @@ function clearOtherWornStones(currentStoneId) {
         if (stone.id.includes('-stone') && stone.id !== currentStoneId && wornStones[stone.id]) {
             // 取消其他进化石的佩戴状态
             wornStones[stone.id] = false;
-            
+
             // 获取对应的宝可梦id（去掉-stone后缀）
             const pokemonBaseId = stone.id.replace('-stone', '');
-            
+
             // 查找对应的宝可梦并恢复其普通形态
             const pokemonIndex = window.pokemonData.findIndex(pokemon => {
                 // 查找对应的普通形态或超级形态
                 return pokemon.id === pokemonBaseId || pokemon.id === pokemonBaseId + '-mega';
             });
-            
+
             if (pokemonIndex !== -1) {
                 const currentPokemon = window.pokemonData[pokemonIndex];
                 // 检查是否是超级形态
@@ -132,6 +133,18 @@ function clearOtherWornStones(currentStoneId) {
                             type: 'dark',
                             typeName: '恶',
                             image: 'player-pokemon/阿勃梭鲁.gif'
+                        };
+                    } else if (pokemonBaseId === 'steelix') {
+                        // 恢复为普通大钢蛇
+                        window.pokemonData[pokemonIndex] = {
+                            id: 'steelix',
+                            name: '大钢蛇',
+                            hp: 4.5,
+                            atk: 2,
+                            move: 1,
+                            type: ['ground', 'steel'],
+                            typeName: ['地面', '钢'],
+                            image: 'player-pokemon/大钢蛇.gif'
                         };
                     }
                     // 可以根据需要添加更多进化石的恢复逻辑
@@ -180,43 +193,61 @@ function renderChessItems() {
 
         infoContainer.appendChild(name);
         infoContainer.appendChild(description);
-        
+
         // 先添加图片和信息到卡片
         card.appendChild(image);
         card.appendChild(infoContainer);
-        
+
         // 添加佩戴按钮 - 只对超级比雕进化石添加
         if (stone.id === 'pidgeot-stone') {
             const buttonContainer = document.createElement('div');
             buttonContainer.className = 'mr-4'; // 与右侧保持间距
-            
+
             const wearButton = document.createElement('button');
-            wearButton.className = wornStones['pidgeot-stone'] ? 
-                'bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors' : 
+            wearButton.className = wornStones['pidgeot-stone'] ?
+                'bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors' :
                 'bg-gray-300 text-gray-900 px-4 py-2 rounded hover:bg-gray-400 transition-colors';
             wearButton.textContent = wornStones['pidgeot-stone'] ? '已佩戴' : '佩戴';
-            wearButton.onclick = function() {
+            wearButton.onclick = function () {
                 togglePidgeotEvolution();
             };
-            
+
             buttonContainer.appendChild(wearButton);
             card.appendChild(buttonContainer);
         }
-        
+
         // 添加超级阿勃梭鲁进化石的佩戴按钮
         if (stone.id === 'absol-stone') {
             const buttonContainer = document.createElement('div');
             buttonContainer.className = 'mr-4'; // 与右侧保持间距
-            
+
             const wearButton = document.createElement('button');
-            wearButton.className = wornStones['absol-stone'] ? 
-                'bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors' : 
+            wearButton.className = wornStones['absol-stone'] ?
+                'bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors' :
                 'bg-gray-300 text-gray-900 px-4 py-2 rounded hover:bg-gray-400 transition-colors';
             wearButton.textContent = wornStones['absol-stone'] ? '已佩戴' : '佩戴';
-            wearButton.onclick = function() {
+            wearButton.onclick = function () {
                 toggleAbsolEvolution();
             };
-            
+
+            buttonContainer.appendChild(wearButton);
+            card.appendChild(buttonContainer);
+        }
+
+        // 添加超级大钢蛇进化石的佩戴按钮
+        if (stone.id === 'steelix-stone') {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'mr-4'; // 与右侧保持间距
+
+            const wearButton = document.createElement('button');
+            wearButton.className = wornStones['steelix-stone'] ?
+                'bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors' :
+                'bg-gray-300 text-gray-900 px-4 py-2 rounded hover:bg-gray-400 transition-colors';
+            wearButton.textContent = wornStones['steelix-stone'] ? '已佩戴' : '佩戴';
+            wearButton.onclick = function () {
+                toggleSteelixEvolution();
+            };
+
             buttonContainer.appendChild(wearButton);
             card.appendChild(buttonContainer);
         }
@@ -235,16 +266,16 @@ function togglePidgeotEvolution() {
         showItemWornMessage('无法完成进化：数据错误');
         return;
     }
-    
+
     const pidgeotIndex = window.pokemonData.findIndex(pokemon => pokemon.id === 'pidgeot' || pokemon.id === 'pidgeot-mega');
-    
+
     if (pidgeotIndex !== -1) {
         // 获取当前比雕数据
         const currentPidgeot = window.pokemonData[pidgeotIndex];
-        
+
         // 判断是否已经进化
         const isMega = currentPidgeot.id === 'pidgeot-mega';
-        
+
         if (isMega) {
             // 恢复为普通比雕
             window.pokemonData[pidgeotIndex] = {
@@ -261,7 +292,7 @@ function togglePidgeotEvolution() {
         } else {
             // 清除其他已佩戴的进化石（互斥佩戴限制）
             clearOtherWornStones('pidgeot-stone');
-            
+
             // 进化为超级比雕
             window.pokemonData[pidgeotIndex] = {
                 id: 'pidgeot-mega',
@@ -275,13 +306,13 @@ function togglePidgeotEvolution() {
             };
             wornStones['pidgeot-stone'] = true;
         }
-        
+
         // 重新渲染道具列表以更新按钮状态
         renderChessItems();
-        
+
         // 显示操作成功消息
         showItemWornMessage(isMega ? '已取消佩戴超级比雕进化石' : '比雕感受到一股强大的力量，他的模样改变了！');
-        
+
         // 这里可以添加更新游戏界面的逻辑，比如重新加载宝可梦数据
         updateGameWithNewPokemonData();
     } else {
@@ -298,16 +329,16 @@ function toggleAbsolEvolution() {
         showItemWornMessage('无法完成进化：数据错误');
         return;
     }
-    
+
     const absolIndex = window.pokemonData.findIndex(pokemon => pokemon.id === 'absol' || pokemon.id === 'absol-mega');
-    
+
     if (absolIndex !== -1) {
         // 获取当前阿勃梭鲁数据
         const currentAbsol = window.pokemonData[absolIndex];
-        
+
         // 判断是否已经进化
         const isMega = currentAbsol.id === 'absol-mega';
-        
+
         if (isMega) {
             // 恢复为普通阿勃梭鲁
             window.pokemonData[absolIndex] = {
@@ -324,7 +355,7 @@ function toggleAbsolEvolution() {
         } else {
             // 清除其他已佩戴的进化石（互斥佩戴限制）
             clearOtherWornStones('absol-stone');
-            
+
             // 进化为超级阿勃梭鲁
             window.pokemonData[absolIndex] = {
                 id: 'absol-mega',
@@ -338,13 +369,13 @@ function toggleAbsolEvolution() {
             };
             wornStones['absol-stone'] = true;
         }
-        
+
         // 重新渲染道具列表以更新按钮状态
         renderChessItems();
-        
+
         // 显示操作成功消息
         showItemWornMessage(isMega ? '已取消佩戴超级阿勃梭鲁进化石' : '阿勃梭鲁感受到一股强大的力量，他的模样改变了！');
-        
+
         // 这里可以添加更新游戏界面的逻辑，比如重新加载宝可梦数据
         updateGameWithNewPokemonData();
     } else {
@@ -367,16 +398,16 @@ function showItemWornMessage(message) {
         messageElement.style.opacity = '0';
         messageElement.style.transform = 'translateX(100%)';
     }
-    
+
     // 设置消息内容
     messageElement.textContent = message;
-    
+
     // 显示消息
     setTimeout(() => {
         messageElement.style.opacity = '1';
         messageElement.style.transform = 'translateX(0)';
     }, 10);
-    
+
     // 2秒后隐藏消息
     setTimeout(() => {
         messageElement.style.opacity = '0';
@@ -397,7 +428,7 @@ function updateGameWithNewPokemonData() {
     if (window.updatePokemonData) {
         window.updatePokemonData(window.pokemonData);
     }
-    
+
     // 新增：直接调用棋包更新函数，确保界面刷新
     if (typeof updateFilteredPokemon === 'function') {
         updateFilteredPokemon();
@@ -410,7 +441,7 @@ function updateGameWithNewPokemonData() {
 function initChessItems() {
     // 创建浮窗
     createChessItemsModal();
-    
+
     // 确保pokemonData是全局可访问的
     if (typeof window.pokemonData === 'undefined' && typeof pokemonData !== 'undefined') {
         window.pokemonData = pokemonData;
@@ -446,4 +477,67 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initChessItems);
 } else {
     initChessItems();
+}
+
+// 添加切换大钢蛇进化状态的函数
+function toggleSteelixEvolution() {
+    // 检查pokemonData是否存在
+    if (!window.pokemonData || !Array.isArray(window.pokemonData)) {
+        console.error('pokemonData不存在或格式不正确');
+        showItemWornMessage('无法完成进化：数据错误');
+        return;
+    }
+
+    const steelixIndex = window.pokemonData.findIndex(pokemon => pokemon.id === 'steelix' || pokemon.id === 'steelix-mega');
+
+    if (steelixIndex !== -1) {
+        // 获取当前大钢蛇数据
+        const currentSteelix = window.pokemonData[steelixIndex];
+
+        // 判断是否已经进化
+        const isMega = currentSteelix.id === 'steelix-mega';
+
+        if (isMega) {
+            // 恢复为普通大钢蛇
+            window.pokemonData[steelixIndex] = {
+                id: 'steelix',
+                name: '大钢蛇',
+                hp: 4.5,
+                atk: 2,
+                move: 1,
+                type: ['steel', 'ground'],
+                typeName: ['铁', '地面'],
+                image: 'player-pokemon/大钢蛇.gif'
+            },
+                wornStones['steelix-stone'] = false;
+        } else {
+            // 清除其他已佩戴的进化石（互斥佩戴限制）
+            clearOtherWornStones('steelix-stone');
+
+            // 进化为超级大钢蛇
+            window.pokemonData[steelixIndex] = {
+                id: 'steelix-mega',
+                name: '超级大钢蛇',
+                hp: 6,
+                atk: 2,
+                move: 1,
+                type: ['ground', 'steel'],
+                typeName: ['地面', '钢'],
+                image: 'player-pokemon/超级大钢蛇.gif'
+            };
+            wornStones['steelix-stone'] = true;
+        }
+
+        // 重新渲染道具列表以更新按钮状态
+        renderChessItems();
+
+        // 显示操作成功消息
+        showItemWornMessage(isMega ? '已取消佩戴超级大钢蛇进化石' : '大钢蛇感受到一股强大的力量，他的模样改变了！');
+
+        // 这里可以添加更新游戏界面的逻辑，比如重新加载宝可梦数据
+        updateGameWithNewPokemonData();
+    } else {
+        // 如果棋包里没有大钢蛇，显示提示信息
+        showItemWornMessage('棋包里没有大钢蛇，无法使用进化石');
+    }
 }
