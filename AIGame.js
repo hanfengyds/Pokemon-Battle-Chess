@@ -184,6 +184,7 @@ function startAIChallenge(level) {
 }
 
 // AI回合逻辑
+// 在aiTurn函数中修改动画状态设置逻辑
 function aiTurn() {
     if (!aiGameState.isAIMode || !aiGameState.aiTurn) return;
 
@@ -192,23 +193,26 @@ function aiTurn() {
     // 记录已执行的行动次数
     let actionsTaken = 0;
     
-    // 重置全局动画状态
-    window.animationPlaying = false;
-    
     // 初始化AI的剩余行动点
     gameState.movesRemaining = 2;
     updateMoveCounter();
-
-    const executeAIAction = () => {
+    
+    function executeAIAction() {
         if (actionsTaken >= 2) {
             // 已经执行了两次行动，结束回合
             aiGameState.aiTurn = false;
             // 确保所有动画完成后再切换回合
             setTimeout(() => {
+                // 再次检查动画状态，确保安全切换回合
                 if (!window.animationPlaying) {
                     switchTurn();
                 } else {
-                    setTimeout(executeAIAction, 100);
+                    // 如果动画还在播放，继续等待
+                    setTimeout(() => {
+                        // 强制重置动画状态，防止死锁
+                        window.animationPlaying = false;
+                        switchTurn();
+                    }, 1000);
                 }
             }, 500);
             return;
@@ -238,7 +242,7 @@ function aiTurn() {
                 // 执行攻击 - 使用专门的AI攻击函数
                 executeAIAttack(aiPiece, bestTarget, () => {
                     // 动画完成回调
-                    animationPlaying = false;
+                    window.animationPlaying = false; // 修复：使用全局的window.animationPlaying
                     actionsTaken++;
                     // 减少AI剩余行动点并更新UI
                     gameState.movesRemaining--;
@@ -369,31 +373,35 @@ function aiTurn() {
         }
     };
 
-    // 开始执行第一次行动
-    setTimeout(executeAIAction, 1000);
+    // 开始执行第一次行动，但先检查动画状态
+    if (window.animationPlaying) {
+        setTimeout(aiTurn, 100);
+    } else {
+        setTimeout(executeAIAction, 1000);
+    }
 }
 
-// 专门的AI攻击函数 - 修改为接收完成回调参数
+// 在executeAIAttack函数中修改动画状态设置
 function executeAIAttack(attacker, target, actionCompleteCallback) {
     selectPiece(attacker);
-
+    
     // 计算伤害
     const damage = calculateDamage(attacker, target);
-
+    
     // 定义处理伤害结算的函数
     function processDamage() {
         // 应用伤害
         target.currentHp -= damage;
-
+        
         addMessage(`AI的 ${attacker.name} 攻击了 ${target.name}，造成了 ${damage} 点伤害！`);
-
+        
         // 检查目标是否被击败
         if (target.currentHp <= 0) {
             gameState.pieces = gameState.pieces.filter(p => p.id !== target.id);
             addMessage(`${target.name} 被击败了！`);
             checkGameEnd();
         }
-
+        
         // 重新渲染
         renderPieces();
         
@@ -402,22 +410,25 @@ function executeAIAttack(attacker, target, actionCompleteCallback) {
             actionCompleteCallback();
         }
     }
-
-    // 设置动画播放标志
-    animationPlaying = true;
-
-    // 检查是否需要播放攻击动画 - 这是之前缺失的关键部分！
+    
+    // 设置动画播放标志 - 使用window前缀
+    window.animationPlaying = true;
+    
+    // 检查是否需要播放攻击动画
     let animationDelayNeeded = false;
     if (window.AttackAnimation && window.AttackAnimation.playAttackAnimation) {
         // 调用与玩家攻击相同的动画系统
         animationDelayNeeded = window.AttackAnimation.playAttackAnimation(attacker, target, processDamage);
     }
-
+    
     // 如果不需要延迟伤害结算，则立即处理
     if (!animationDelayNeeded) {
-        setTimeout(processDamage, 500);
+        setTimeout(() => {
+            window.animationPlaying = false;
+            processDamage();
+        }, 500);
     }
-
+    
     // 在伤害处理完成后添加检测
     if (aiGameState.currentLevel === 4) {
         const legendaryBirds = gameState.pieces.filter(p => 
@@ -480,17 +491,15 @@ function executeAIMove(piece, move) {
 // 重写回合切换函数以支持AI
 const originalSwitchTurn = switchTurn;
 switchTurn = function() {
+    // 确保在动画播放中不切换回合
+    if (window.animationPlaying) {
+        setTimeout(switchTurn, 100);
+        return;
+    }
+    
     originalSwitchTurn();
     
-    // 只有在AI模式下且当前玩家是红色方时才触发AI回合
-    // 并且确保不是游戏刚开始时的第一次回合切换
-    if (aiGameState.isAIMode && gameState.currentPlayer === 'red' && gameState.gameStarted) {
-        // 添加额外检查，确保不是连续触发
-        if (!aiGameState.aiTurn) {
-            aiGameState.aiTurn = true;
-            setTimeout(aiTurn, 1000);
-        }
-    }
+    // 移除这里的额外AI触发逻辑，统一由game.js中的switchTurn函数处理
 };
 
 // 重写游戏结束检查
