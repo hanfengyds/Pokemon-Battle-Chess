@@ -155,9 +155,6 @@
 
         // 宝可梦介绍文本映射
         const pokemonDescriptions = {
-            'minior-meteor': '血量降低至一半时，变为[核心状态]',
-            'minior': '核心状态',
-            'magnezone': '操控3距离内的钢系精灵，向指定方向移动一格',
             'scizor': '消耗两个移动点，对路径上的首个敌人造成1点钢属性伤害',
             'samurott': '攻击有50%概率切中要害，额外造成0.5伤害',
             'guzzlord': '吞噬一名己方棋子，至多获取其5点体力，能够突破血量上限',
@@ -170,24 +167,34 @@
             'deoxys-atk': '代欧奇希斯将细胞集中于脑核，最大化[进攻]能力',
             'deoxys-def': '代欧奇希斯将细胞集中于盔甲，最大化[防御]能力',
             'deoxys-spe': '代欧奇希斯将细胞集中于下肢，最大化[移动]能力',
-            'moltres':'对目标身后两格内的敌人，造成1点的火系贯穿伤害',
-            'zapdos':'对目标身后两格内的敌人，造成1点的电属性贯穿伤害',
-            'articuno':'对目标身后两格内的敌人，造成1点的冰属性贯穿伤害',
+            'moltres': '对目标身后两格内的敌人，造成1点的火系贯穿伤害',
+            'zapdos': '对目标身后两格内的敌人，造成1点的电属性贯穿伤害',
+            'articuno': '对目标身后两格内的敌人，造成1点的冰属性贯穿伤害',
+            'gengar-mega': '制作中...',
+            'absol-mega': '反弹一切对自己不利的负面状态',
+            'scizor-mega': '消耗两个移动点，对路径上的首个敌人造成1.5点钢属性伤害',
+            'pidgeot-mega': '目标和自己之间，互相无视任何格挡、护盾、延迟等效果，直接造成伤害',
+            'steelix-mega': '处于沙暴天气下时，基础攻击提高1点',
+
         };
 
         // 获取宝可梦边框样式
         function getPokemonBorderStyle(pokemonId) {
-            if (pokemonId === 'magnezone' ||pokemonId === 'samurott' || pokemonId === 'scizor'|| pokemonId === 'minior-meteor'|| pokemonId === 'minior') {
+            if (pokemonId === 'samurott'
+                || pokemonId === 'scizor'|| pokemonId === 'pidgeot-mega'
+                || pokemonId === 'absol-mega' || pokemonId === 'steelix-mega'
+                || pokemonId === 'pidgeot-mega'
+            ) {
 
                 return pokemonBorderStyles.blue;
             }
-            if (pokemonId === 'guzzlord' || pokemonId === 'tyranitar') {
+            if (pokemonId === 'guzzlord' || pokemonId === 'tyranitar' || pokemonId === 'scizor-mega') {
                 return pokemonBorderStyles.purple;
             }
             if (pokemonId === 'moltres' || pokemonId === 'zapdos' || pokemonId === 'articuno') {
                 return pokemonBorderStyles.purple;
             }
-            if (pokemonId === 'kyogre'|| pokemonId === 'lugia') {
+            if (pokemonId === 'kyogre' || pokemonId === 'lugia' || pokemonId === 'gengar-mega') {
                 return pokemonBorderStyles.yellow;
 
             }
@@ -209,37 +216,7 @@
         }
 
         // 宝可梦数据
-        const pokemonData = [
-                {
-                id: 'minior-meteor',
-                name: '小陨星（流星）',
-                hp: 3,
-                atk: 1.5,
-                move: 2,
-                type: ['rock', 'flying'],
-                typeName: ['岩石', '飞行'],
-                image: 'ai-pokemon/小陨星（流星）.gif'
-            },
-                {
-                id: 'minior',
-                name: '小陨星',
-                hp: 1.5,
-                atk: 2,
-                move: 2.5,
-                type: ['rock', 'flying'],
-                typeName: ['岩石', '飞行'],
-                image: 'ai-pokemon/小陨星.gif'
-            },
-            {
-                id: 'magnezone',
-                name: '自爆磁怪',
-                hp: 3.5,
-                atk: 2,
-                move: 2,
-                type: ['electric', 'steel'],
-                typeName: ['电', '钢'],
-                image: 'player-pokemon/自爆磁怪.gif'
-            },
+        const pokemonData = [          
             {
                 id: 'scizor',
                 name: '巨钳螳螂',
@@ -250,16 +227,46 @@
                 typeName: ['虫', '钢'],
                 image: 'ai-pokemon/巨钳螳螂.gif',
             },
-                    {
-            id: 'samurott',
-            name: '大剑鬼',
-            hp: 3,
-            atk: 2,
-            move: 2,
-            type: 'water',
-            typeName: '水',
-            image: 'player-pokemon/大剑鬼.gif'
-        },
+            {
+                id: 'samurott',
+                name: '大剑鬼',
+                hp: 3,
+                atk: 2,
+                move: 2,
+                type: 'water',
+                typeName: '水',
+                image: 'player-pokemon/大剑鬼.gif'
+            },
+            {
+                id: 'pidgeot-mega',
+                name: '超级比雕',
+                hp: 3.5,
+                atk: 2,
+                move: 3,
+                type: ['normal', 'flying'],
+                typeName: ['一般', '飞行'],
+                image: 'player-pokemon/超级比雕.gif'
+            },
+            {
+                id: 'steelix-mega',
+                name: '超级大钢蛇',
+                hp: 6,
+                atk: 2,
+                move: 1.5,
+                type: ['ground', 'steel'],
+                typeName: ['地面', '钢'],
+                image: 'player-pokemon/超级大钢蛇.gif'
+            },
+            {
+                id: 'absol-mega',
+                name: '超级阿勃梭鲁',
+                hp: 3.5,
+                atk: 2,
+                move: 2.5,
+                type: 'dark',
+                typeName: '恶',
+                image: 'player-pokemon/超级阿勃梭鲁.gif',
+            },
             {
                 id: 'guzzlord',
                 name: '恶食大王',
@@ -280,43 +287,66 @@
                 typeName: ['岩石', '恶'],
                 image: 'ai-pokemon/班基拉斯.gif',
             },
-                                 { id: 'moltres',
-        name: '火焰鸟',
-        hp: 5.5,
-        atk: 2,
-        move: 2,
-        type: ['fire','flying'],
-        typeName: ['火','飞行'],
-        image: 'ai-pokemon/火焰鸟.gif',
-    },
-        { id: 'zapdos',
-        name: '闪电鸟',
-        hp: 4.5,
-        atk: 2,
-        move: 2.5,
-        type: ['electric','flying'],
-        typeName: ['电','飞行'],
-        image: 'ai-pokemon/闪电鸟.gif',
-    },
-        { id: 'articuno',
-        name: '急冻鸟',
-        hp: 6.5,
-        atk: 1.5,
-        move: 2,
-        type: ['ice','flying'],
-        typeName: ['冰','飞行'],
-        image: 'ai-pokemon/急冻鸟.gif',
-    },
-            { 
-        id: 'lugia',
-        name: '洛奇亚',
-        hp: 8.5,
-        atk: 2,
-        move: 2.5,
-        type: ['psychic','flying'],
-        typeName: ['超能','飞行'],
-        image: 'ai-pokemon/洛奇亚.gif',
-    },
+            {
+                id: 'scizor-mega',
+                name: '超级巨钳螳螂',
+                hp: 5.5,
+                atk: 2.5,
+                move: 2,
+                type: ['bug', 'steel'],
+                typeName: ['虫', '钢'],
+                image: 'player-pokemon/超级巨钳螳螂.gif',
+            },
+            {
+                id: 'moltres',
+                name: '火焰鸟',
+                hp: 5.5,
+                atk: 2,
+                move: 2,
+                type: ['fire', 'flying'],
+                typeName: ['火', '飞行'],
+                image: 'ai-pokemon/火焰鸟.gif',
+            },
+            {
+                id: 'zapdos',
+                name: '闪电鸟',
+                hp: 4.5,
+                atk: 2,
+                move: 2.5,
+                type: ['electric', 'flying'],
+                typeName: ['电', '飞行'],
+                image: 'ai-pokemon/闪电鸟.gif',
+            },
+            {
+                id: 'articuno',
+                name: '急冻鸟',
+                hp: 6.5,
+                atk: 1.5,
+                move: 2,
+                type: ['ice', 'flying'],
+                typeName: ['冰', '飞行'],
+                image: 'ai-pokemon/急冻鸟.gif',
+            },
+            {
+                id: 'gengar-mega',
+                name: '超级耿鬼',
+                hp: 2.5,
+                atk: 3,
+                move: 3,
+                type: ['ghost', 'poison'],
+                typeName: ['幽鬼', '毒'],
+                image: 'player-pokemon/超级耿鬼.gif',
+            },
+            {
+                id: 'lugia',
+                name: '洛奇亚',
+                hp: 8.5,
+                atk: 2,
+                move: 2.5,
+                type: ['psychic', 'flying'],
+                typeName: ['超能', '飞行'],
+                image: 'ai-pokemon/洛奇亚.gif',
+            },
             {
                 id: 'kyogre',
                 name: '盖欧卡',
