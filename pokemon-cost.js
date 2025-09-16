@@ -45,6 +45,9 @@ const pokemonBorderMapping = {
     'moltres': 'purple',
     'zapdos': 'purple',
     'articuno': 'purple',
+    'absol-mega': 'blue',
+    'pidgeot-mega':'blue',
+    'steelix-mega': 'blue',
 
 
     // 您可以在这里添加其他宝可梦的边框映射
@@ -124,7 +127,9 @@ const pokemonDescriptions = {
     'moltres': '对目标身后两格内的敌人，造成1点的火系贯穿伤害',
     'zapdos': '对目标身后两格内的敌人，造成1点的电属性贯穿伤害',
     'articuno': '对目标身后两格内的敌人，造成1点的冰属性贯穿伤害',
-    // 'bulbasaur': '草系宝可梦，能够使用藤鞭攻击'
+    'absol-mega': '反弹一切对自己不利的负面状态',
+    'pidgeot-mega': '目标和自己之间，互相无视任何格挡、护盾、延迟等效果，直接造成伤害',
+    'steelix-mega': '处于沙暴天气下时，基础攻击提高1点',
 };
 /* */
 // 获取宝可梦介绍文本
