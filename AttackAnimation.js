@@ -54,6 +54,7 @@ window.AttackAnimation = {
      * @param {Object} target - 被攻击目标宝可梦
      * @param {Function} callback - 动画结束后的回调函数（用于伤害结算）
      */
+    // 在动画完成回调中确保使用window.animationPlaying
     playScizorBulletPunchAnimation: function(attacker, target, callback) {
         const gameBoard = document.getElementById('game-board');
         if (!gameBoard || !attacker || !target) {
