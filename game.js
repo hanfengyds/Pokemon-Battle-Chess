@@ -14,7 +14,7 @@ const gameState = {
 };
 
 // 添加全局动画状态追踪
-let animationPlaying = false;
+window.animationPlaying = false;
 let animationTimeout = null;
 
 // 确保pokemonData是全局可访问的
@@ -2456,17 +2456,8 @@ function handleAttack(targetId) {
         if (gameState.movesRemaining <= 0) {
             // 确保在动画完全完成后再切换回合
             setTimeout(() => {
-                if (aiGameState && aiGameState.isAIMode) {
-                    aiGameState.aiTurn = true;
-                    // 先切换回合再执行AI行动
-                    switchTurn();
-                    setTimeout(() => {
-                        aiTurn(); // 开始AI回合
-                    }, 500);
-                } else {
-                    switchTurn();
-                }
-            }, 500);
+                switchTurn();
+            }, 300); // 减小延迟时间，确保更快响应
         } else {
             // 仍然有移动次数，保持选中状态
             setTimeout(() => selectPiece(attacker), 100);
@@ -2482,19 +2473,19 @@ function handleAttack(targetId) {
         };
         
         // 设置全局动画状态
-        animationPlaying = true;
+        window.animationPlaying = true;
         
         // 清除之前的超时
         if (animationTimeout) {
             clearTimeout(animationTimeout);
         }
         
-        // 添加动画超时保护（10秒）
+        // 添加动画超时保护
         animationTimeout = setTimeout(() => {
             console.warn('Animation timed out, forcing completion');
-            animationPlaying = false;
+            window.animationPlaying = false;
             processDamage();
-        }, 10000);
+        }, 15000);
         
         // 包装processDamage函数，确保重置动画状态
         const wrappedProcessDamage = () => {
@@ -2503,7 +2494,7 @@ function handleAttack(targetId) {
                 clearTimeout(animationTimeout);
                 animationTimeout = null;
             }
-            animationPlaying = false;
+            window.animationPlaying = false;
             processDamage();
         };
         
@@ -2514,7 +2505,7 @@ function handleAttack(targetId) {
     if (!animationDelayNeeded) {
         // 添加短暂延迟让动画效果显示
         setTimeout(() => {
-            animationPlaying = false;
+            window.animationPlaying = false; // 修复：使用全局的window.animationPlaying
             processDamage();
         }, 500);
     }
@@ -2749,13 +2740,16 @@ function updateCurrentPlayerDisplay() {
     }
 }
 
-// 切换回合 - 修改为通过消息区域播报
 function switchTurn() {
     // 如果有动画正在播放，延迟切换回合
-    if (animationPlaying) {
+    if (window.animationPlaying) {
+        console.log('动画正在播放，延迟回合切换');
         setTimeout(switchTurn, 100);
         return;
     }
+    
+    // 修复：确保在切换回合前，动画状态被正确重置
+    window.animationPlaying = false;
     
     gameState.currentPlayer = gameState.currentPlayer === 'blue' ? 'red' : 'blue';
     
@@ -2787,6 +2781,17 @@ function switchTurn() {
     
     // 确保回合切换后边框正确显示
     updatePieceBorders();
+    
+    // AI模式下特殊处理：如果是红色方回合且是AI模式，触发AI回合
+    if (aiGameState && aiGameState.isAIMode &&
+        gameState.currentPlayer === 'red' &&
+        !aiGameState.aiTurn) {
+        // 延迟一小段时间再开始AI思考，确保界面更新完成
+        setTimeout(() => {
+            aiGameState.aiTurn = true;
+            aiTurn();
+        }, 500);
+    }
 }
 
 // 检查游戏是否结束
